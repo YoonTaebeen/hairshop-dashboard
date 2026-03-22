@@ -3,8 +3,8 @@
 // Supabase와 직접 통신
 // =============================================
 
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';   // ← 실제 URL로 교체
-const SUPABASE_KEY = 'YOUR_SUPABASE_KEY';   // ← 실제 KEY로 교체
+const SUPABASE_URL = 'https://xpdtgmytotifewnznqvf.supabase.co';   // ← 실제 URL로 교체
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwZHRnbXl0b3RpZmV3bnpucXZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjgxMDMsImV4cCI6MjA4OTc0NDEwM30.SLc727NOuRnYtRsXdsnJq42MHNl9KIF2KDOwwIDUk_0';   // ← 실제 KEY로 교체
 
 // ── 날짜 헤더 ─────────────────────────────────
 const DAYS = ['일','월','화','수','목','금','토'];
