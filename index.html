@@ -4,198 +4,94 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#ffffff">
 <title>헤어샵 예약 관리</title>
-<link rel="manifest" href="manifest.json">
 <style>
   :root {
-    --primary: #1a73e8;
-    --primary-light: #e8f0fe;
-    --green: #34a853;
-    --green-light: #e6f4ea;
-    --red: #ea4335;
-    --red-light: #fce8e6;
-    --amber: #fbbc04;
-    --amber-light: #fef7e0;
-    --gray-100: #f8f9fa;
-    --gray-200: #e9ecef;
-    --gray-400: #868e96;
-    --gray-600: #495057;
-    --gray-800: #212529;
-    --radius: 12px;
-    --radius-sm: 8px;
+    --primary: #1a73e8; --primary-light: #e8f0fe;
+    --green: #34a853; --green-light: #e6f4ea;
+    --red: #ea4335; --red-light: #fce8e6;
+    --amber: #fbbc04; --amber-light: #fef7e0;
+    --gray-100: #f8f9fa; --gray-200: #e9ecef;
+    --gray-400: #868e96; --gray-600: #495057; --gray-800: #212529;
+    --radius: 12px; --radius-sm: 8px;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; background: #f5f5f7; color: var(--gray-800); min-height: 100vh; padding-bottom: 80px; }
 
-  body {
-    font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-    background: #f5f5f7;
-    color: var(--gray-800);
-    min-height: 100vh;
-    padding-bottom: 80px;
-  }
-
-  /* 상단 헤더 */
-  .header {
-    background: #fff;
-    padding: 16px 20px 12px;
-    border-bottom: 1px solid var(--gray-200);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
+  .header { background: #fff; padding: 16px 20px 12px; border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; z-index: 100; }
   .header-top { display: flex; justify-content: space-between; align-items: center; }
   .shop-name { font-size: 17px; font-weight: 600; }
-  .live-badge {
-    display: flex; align-items: center; gap: 5px;
-    font-size: 11px; color: var(--green);
-    background: var(--green-light);
-    padding: 3px 8px; border-radius: 20px;
-  }
-  .live-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--green);
-    animation: blink 1.5s infinite;
-  }
+  .live-badge { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--green); background: var(--green-light); padding: 3px 8px; border-radius: 20px; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 1.5s infinite; }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
   .header-date { font-size: 12px; color: var(--gray-400); margin-top: 4px; }
 
-  /* 탭 바 */
-  .tab-bar {
-    display: flex;
-    background: #fff;
-    border-bottom: 1px solid var(--gray-200);
-    padding: 0 4px;
-    position: sticky;
-    top: 65px;
-    z-index: 99;
-  }
-  .tab-btn {
-    flex: 1; padding: 12px 0; font-size: 13px;
-    border: none; background: transparent;
-    color: var(--gray-400); cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all .2s;
-  }
+  .tab-bar { display: flex; background: #fff; border-bottom: 1px solid var(--gray-200); position: sticky; top: 65px; z-index: 99; overflow-x: auto; }
+  .tab-btn { flex: 1; min-width: 56px; padding: 12px 4px; font-size: 12px; border: none; background: transparent; color: var(--gray-400); cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; white-space: nowrap; }
   .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
 
-  /* 컨텐츠 영역 */
   .page { display: none; padding: 16px; }
   .page.active { display: block; }
 
-  /* 통계 카드 그리드 */
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-  .stat-card {
-    background: #fff; border-radius: var(--radius);
-    padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.06);
-  }
+  .stat-card { background: #fff; border-radius: var(--radius); padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
   .stat-label { font-size: 11px; color: var(--gray-400); margin-bottom: 6px; }
   .stat-value { font-size: 22px; font-weight: 700; }
   .stat-sub { font-size: 11px; margin-top: 4px; }
-  .up { color: var(--green); }
-  .down { color: var(--red); }
+  .up { color: var(--green); } .down { color: var(--red); }
 
-  /* 섹션 타이틀 */
-  .section-title {
-    font-size: 12px; font-weight: 600; color: var(--gray-400);
-    letter-spacing: .06em; text-transform: uppercase;
-    margin: 16px 0 8px;
-  }
+  .section-title { font-size: 12px; font-weight: 600; color: var(--gray-400); letter-spacing: .06em; text-transform: uppercase; margin: 16px 0 8px; }
 
-  /* 예약 카드 */
   .booking-list { display: flex; flex-direction: column; gap: 8px; }
-  .booking-card {
-    background: #fff; border-radius: var(--radius);
-    padding: 13px 14px; display: flex; align-items: center; gap: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.06);
-    transition: transform .15s;
-  }
-  .booking-card:active { transform: scale(.98); }
+  .booking-card { background: #fff; border-radius: var(--radius); padding: 13px 14px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
   .booking-card.cancelled { opacity: .45; }
   .booking-card.new-customer { border-left: 3px solid var(--primary); }
-
   .time-col { text-align: center; min-width: 42px; }
   .time-main { font-size: 15px; font-weight: 700; }
   .time-end { font-size: 10px; color: var(--gray-400); margin-top: 1px; }
-
   .vline { width: 1px; height: 34px; background: var(--gray-200); }
-
   .booking-info { flex: 1; min-width: 0; }
   .booking-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .booking-service { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
   .booking-tags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
-
-  .tag {
-    font-size: 10px; padding: 2px 7px;
-    border-radius: 10px; font-weight: 500;
-  }
+  .tag { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 500; }
   .tag-confirmed { background: var(--primary-light); color: var(--primary); }
   .tag-completed { background: var(--green-light); color: var(--green); }
   .tag-cancelled { background: var(--red-light); color: var(--red); }
   .tag-new { background: var(--amber-light); color: #9a6700; }
-
   .booking-price { font-size: 13px; font-weight: 700; text-align: right; white-space: nowrap; }
   .booking-price.cancelled { text-decoration: line-through; color: var(--gray-400); font-weight: 400; }
 
-  /* 바 차트 */
   .bar-list { display: flex; flex-direction: column; gap: 10px; }
   .bar-item { display: flex; align-items: center; gap: 8px; }
-  .bar-item-label { font-size: 12px; color: var(--gray-600); min-width: 52px; text-align: right; }
+  .bar-item-label { font-size: 11px; color: var(--gray-600); min-width: 60px; text-align: right; }
   .bar-track { flex: 1; height: 24px; background: var(--gray-100); border-radius: 6px; overflow: hidden; }
-  .bar-fill {
-    height: 100%; border-radius: 6px;
-    display: flex; align-items: center; padding-left: 8px;
-    font-size: 11px; font-weight: 600;
-    transition: width .6s ease;
-  }
+  .bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 8px; font-size: 11px; font-weight: 600; transition: width .6s ease; }
   .bar-fill.primary { background: #c2d7f9; color: var(--primary); }
   .bar-fill.best { background: var(--primary); color: #fff; }
   .bar-fill.green { background: #9fdcb3; color: #1a7a3e; }
   .bar-fill.purple { background: #d4b8f5; color: #6b35c2; }
-  .bar-item-val { font-size: 11px; color: var(--gray-400); min-width: 60px; text-align: right; }
+  .bar-item-val { font-size: 11px; color: var(--gray-400); min-width: 64px; text-align: right; }
 
-  /* 빈 상태 */
-  .empty {
-    text-align: center; padding: 40px 0;
-    color: var(--gray-400); font-size: 14px;
-  }
+  .empty { text-align: center; padding: 40px 0; color: var(--gray-400); font-size: 14px; }
+  .loading { text-align: center; padding: 30px; color: var(--gray-400); font-size: 13px; }
 
-  /* 하단 탭 네비게이션 */
-  .bottom-nav {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: #fff; border-top: 1px solid var(--gray-200);
-    display: flex; z-index: 200;
-  }
-  .nav-btn {
-    flex: 1; padding: 10px 0 6px; border: none; background: transparent;
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    font-size: 10px; color: var(--gray-400); cursor: pointer;
-    transition: color .2s;
-  }
-  .nav-btn.active { color: var(--primary); }
-  .nav-icon { font-size: 20px; }
+  .refresh-btn { width: 100%; padding: 12px; background: var(--primary-light); color: var(--primary); border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 12px; }
 
-  /* 로딩 */
-  .loading {
-    text-align: center; padding: 30px;
-    color: var(--gray-400); font-size: 13px;
-  }
-
-  /* 새로고침 버튼 */
-  .refresh-btn {
-    width: 100%; padding: 12px;
-    background: var(--primary-light); color: var(--primary);
-    border: none; border-radius: var(--radius-sm);
-    font-size: 13px; font-weight: 600; cursor: pointer;
-    margin-top: 12px;
-  }
+  /* 기간별 조회 스타일 */
+  .date-picker-wrap { background: #fff; border-radius: var(--radius); padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 12px; }
+  .date-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .date-row label { font-size: 12px; color: var(--gray-600); min-width: 28px; }
+  .date-row input[type=date] { flex: 1; padding: 8px 10px; border: 1px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 13px; color: var(--gray-800); }
+  .quick-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .quick-btn { padding: 5px 10px; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 20px; font-size: 11px; color: var(--gray-600); cursor: pointer; }
+  .quick-btn:active { background: var(--primary-light); color: var(--primary); }
+  .search-btn { width: 100%; padding: 11px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; }
 </style>
 </head>
 <body>
 
-<!-- 상단 헤더 -->
 <div class="header">
   <div class="header-top">
     <span class="shop-name" id="shopName">헤어샵 예약 관리</span>
@@ -204,100 +100,80 @@
   <div class="header-date" id="headerDate"></div>
 </div>
 
-<!-- 탭 바 -->
 <div class="tab-bar">
   <button class="tab-btn active" onclick="switchPage('today')">오늘</button>
   <button class="tab-btn" onclick="switchPage('week')">주간</button>
   <button class="tab-btn" onclick="switchPage('month')">월간</button>
+  <button class="tab-btn" onclick="switchPage('range')">기간별</button>
   <button class="tab-btn" onclick="switchPage('stats')">분석</button>
 </div>
 
-<!-- 오늘 페이지 -->
+<!-- 오늘 -->
 <div id="today" class="page active">
   <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-label">오늘 예약</div>
-      <div class="stat-value" id="todayCount">-</div>
-      <div class="stat-sub" id="todayCancelCount"></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">오늘 예상 매출</div>
-      <div class="stat-value" id="todayRevenue">-</div>
-      <div class="stat-sub up" id="todayRevenueNote"></div>
-    </div>
+    <div class="stat-card"><div class="stat-label">오늘 예약</div><div class="stat-value" id="todayCount">-</div><div class="stat-sub" id="todayCancelCount"></div></div>
+    <div class="stat-card"><div class="stat-label">오늘 예상 매출</div><div class="stat-value" id="todayRevenue">-</div></div>
   </div>
   <div class="section-title">예약 현황</div>
-  <div class="booking-list" id="todayBookings">
-    <div class="loading">불러오는 중...</div>
-  </div>
+  <div class="booking-list" id="todayBookings"><div class="loading">불러오는 중...</div></div>
   <button class="refresh-btn" onclick="loadToday()">새로고침</button>
 </div>
 
-<!-- 주간 페이지 -->
+<!-- 주간 -->
 <div id="week" class="page">
   <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-label">이번주 예약</div>
-      <div class="stat-value" id="weekCount">-</div>
-      <div class="stat-sub" id="weekCancelRate"></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">주간 매출</div>
-      <div class="stat-value" id="weekRevenue">-</div>
-    </div>
+    <div class="stat-card"><div class="stat-label">이번주 예약</div><div class="stat-value" id="weekCount">-</div><div class="stat-sub" id="weekCancelRate"></div></div>
+    <div class="stat-card"><div class="stat-label">주간 매출</div><div class="stat-value" id="weekRevenue">-</div></div>
   </div>
   <div class="section-title">요일별 매출</div>
-  <div class="bar-list" id="weeklyBars">
-    <div class="loading">불러오는 중...</div>
-  </div>
+  <div class="bar-list" id="weeklyBars"><div class="loading">불러오는 중...</div></div>
 </div>
 
-<!-- 월간 페이지 -->
+<!-- 월간 -->
 <div id="month" class="page">
   <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-label">이번달 예약</div>
-      <div class="stat-value" id="monthCount">-</div>
-      <div class="stat-sub" id="monthCancelRate"></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">이번달 매출</div>
-      <div class="stat-value" id="monthRevenue">-</div>
-      <div class="stat-sub" id="monthGrowth"></div>
-    </div>
+    <div class="stat-card"><div class="stat-label">이번달 예약</div><div class="stat-value" id="monthCount">-</div><div class="stat-sub" id="monthCancelRate"></div></div>
+    <div class="stat-card"><div class="stat-label">이번달 매출</div><div class="stat-value" id="monthRevenue">-</div></div>
   </div>
   <div class="section-title">시술 종류별 매출</div>
-  <div class="bar-list" id="monthlyServiceBars">
-    <div class="loading">불러오는 중...</div>
-  </div>
+  <div class="bar-list" id="monthlyServiceBars"><div class="loading">불러오는 중...</div></div>
 </div>
 
-<!-- 분석 페이지 -->
+<!-- 기간별 조회 (신규) -->
+<div id="range" class="page">
+  <div class="date-picker-wrap">
+    <div class="date-row">
+      <label>시작</label>
+      <input type="date" id="dateFrom">
+    </div>
+    <div class="date-row">
+      <label>종료</label>
+      <input type="date" id="dateTo">
+    </div>
+    <div class="quick-btns">
+      <button class="quick-btn" onclick="setRange('today')">오늘</button>
+      <button class="quick-btn" onclick="setRange('week')">이번주</button>
+      <button class="quick-btn" onclick="setRange('month')">이번달</button>
+      <button class="quick-btn" onclick="setRange('3month')">최근 3개월</button>
+      <button class="quick-btn" onclick="setRange('year')">올해 전체</button>
+    </div>
+    <button class="search-btn" onclick="loadRange()">조회하기</button>
+  </div>
+  <div id="rangeResult"></div>
+</div>
+
+<!-- 분석 -->
 <div id="stats" class="page">
   <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-label">올해 총 매출</div>
-      <div class="stat-value" id="yearRevenue">-</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">평균 객단가</div>
-      <div class="stat-value" id="avgPrice">-</div>
-    </div>
+    <div class="stat-card"><div class="stat-label">올해 총 매출</div><div class="stat-value" id="yearRevenue">-</div></div>
+    <div class="stat-card"><div class="stat-label">평균 객단가</div><div class="stat-value" id="avgPrice">-</div></div>
   </div>
   <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-label">취소율</div>
-      <div class="stat-value" id="cancelRate">-</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">신규 고객 비율</div>
-      <div class="stat-value" id="newCustRate">-</div>
-    </div>
+    <div class="stat-card"><div class="stat-label">취소율</div><div class="stat-value" id="cancelRate">-</div></div>
+    <div class="stat-card"><div class="stat-label">신규 고객 비율</div><div class="stat-value" id="newCustRate">-</div></div>
   </div>
   <div class="section-title">인기 시술</div>
-  <div class="bar-list" id="serviceRankBars">
-    <div class="loading">불러오는 중...</div>
-  </div>
+  <div class="bar-list" id="serviceRankBars"><div class="loading">불러오는 중...</div></div>
 </div>
 
 <script src="app.js"></script>
