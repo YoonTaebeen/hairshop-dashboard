@@ -137,6 +137,7 @@ function bookingCardHtml(b) {
           <div class="booking-service">${b.service_name}</div>
           <div class="booking-tags">
             <span class="tag ${tagClsMap[b.status]||'tag-confirmed'}">${statusMap[b.status]||b.status}</span>
+            ${b.is_changed?'<span class="tag tag-changed">🔄변경</span>':''}
             ${b.is_new_customer?'<span class="tag tag-new">신규</span>':''}
           </div>
           ${dateInfo}
