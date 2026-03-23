@@ -1,7 +1,6 @@
 // =============================================
 // 헤어샵 대시보드 app.js
-// - 새로고침 완전 리셋
-// - 스케줄 탭 (예약확정/취소/변경 날짜별 정리)
+// 네이버 예약 메일 정확 파싱 버전
 // =============================================
 
 const SUPABASE_URL = 'https://xpdtgmytotifewnznqvf.supabase.co';
@@ -11,7 +10,7 @@ const DAYS = ['일','월','화','수','목','금','토'];
 const COLORS = ['#1a73e8','#34a853','#fbbc04','#ea4335','#9c27b0','#00bcd4','#ff9800','#795548'];
 const now = new Date();
 const charts = {};
-let scheduleData = []; // 스케줄 전체 데이터 캐시
+let scheduleData = [];
 let currentPage = 'today';
 
 Chart.defaults.font.family = "-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif";
@@ -21,25 +20,20 @@ Chart.defaults.color = '#9e9e9e';
 document.getElementById('headerDate').textContent =
   `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 ${DAYS[now.getDay()]}요일`;
 
-// ── 완전 새로고침 (캐시 없이 리셋) ──────────────
+// ── 완전 새로고침 ──────────────────────────────
 function hardRefresh() {
-  // 모든 차트 삭제
   Object.keys(charts).forEach(k => { if(charts[k]) { charts[k].destroy(); delete charts[k]; } });
   scheduleData = [];
-
-  // 현재 탭 다시 로드
-  if (currentPage === 'today')    loadToday();
-  else if (currentPage === 'schedule') loadSchedule();
-  else if (currentPage === 'week')     loadWeek();
-  else if (currentPage === 'month')    loadMonth();
-  else if (currentPage === 'stats')    loadStats();
-
-  // 버튼 회전 애니메이션
+  if (currentPage==='today')    loadToday();
+  else if (currentPage==='schedule') loadSchedule();
+  else if (currentPage==='week')  loadWeek();
+  else if (currentPage==='month') loadMonth();
+  else if (currentPage==='stats') loadStats();
   const btn = document.querySelector('.refresh-top-btn');
-  if (btn) { btn.style.transform = 'rotate(360deg)'; btn.style.transition = 'transform 0.5s'; setTimeout(()=>{btn.style.transform='';btn.style.transition='';},500); }
+  if(btn){ btn.style.transform='rotate(360deg)'; btn.style.transition='transform 0.5s'; setTimeout(()=>{btn.style.transform='';btn.style.transition='';},500); }
 }
 
-// ── 탭 전환 ──────────────────────────────────
+// ── 탭 전환 ────────────────────────────────────
 function switchPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === name));
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
@@ -54,14 +48,13 @@ function switchPage(name) {
   if (name==='stats')    loadStats();
 }
 
-// ── DB 조회 ──────────────────────────────────
+// ── DB 조회 ────────────────────────────────────
 async function sbGet(table, params={}) {
   const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
   Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
   const res = await fetch(url, {
     headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
-               'Cache-Control': 'no-cache, no-store, must-revalidate',
-               'Pragma': 'no-cache', 'Expires': '0' },
+               'Cache-Control': 'no-cache', Pragma: 'no-cache' },
     cache: 'no-store'
   });
   if (!res.ok) throw new Error(await res.text());
@@ -71,143 +64,61 @@ async function sbGet(table, params={}) {
 const won = n => Number(n||0).toLocaleString('ko-KR');
 const toDateStr = d => d.toISOString().slice(0,10);
 function timeToMin(t) { if(!t) return 0; const[h,m]=t.split(':').map(Number); return h*60+m; }
-function minToTime(m) { const h=Math.floor(m/60)%24,min=m%60; return `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`; }
+function minToTime(m) { const h=Math.floor(m/60)%24,mn=m%60; return `${String(h).padStart(2,'0')}:${String(mn).padStart(2,'0')}`; }
 function destroyChart(id) { if(charts[id]) { charts[id].destroy(); delete charts[id]; } }
 function makeLegend(elId, labels, colors) {
-  const el = document.getElementById(elId);
-  if(el) el.innerHTML = labels.map((l,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${colors[i]}"></div>${l}</div>`).join('');
+  const el=document.getElementById(elId);
+  if(el) el.innerHTML=labels.map((l,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${colors[i]}"></div>${l}</div>`).join('');
 }
 
-// ── 오늘 ──────────────────────────────────────
-async function loadToday() {
-  document.getElementById('todayBookings').innerHTML = '<div class="loading">불러오는 중...</div>';
-  const today = toDateStr(now);
-  try {
-    const bookings = await sbGet('bookings', { booking_date:`eq.${today}`, order:'booking_time.asc', select:'*' });
-    const active    = bookings.filter(b => b.status !== 'cancelled');
-    const cancelled = bookings.filter(b => b.status === 'cancelled');
-    const changed   = bookings.filter(b => b.status === 'changed');
-    const revenue   = active.reduce((s,b) => s+(b.service_price||0), 0);
+// ── 네이버 시간 파싱 ────────────────────────────
+// "2026.03.21.(토) 오후 4:00" → {date:"2026-03-21", time:"16:00:00"}
+// "2026.03.20. 17:51:38"     → {date:"2026-03-20", time:"17:51:38"}
+function parseNaverDateTime(str) {
+  if (!str) return null;
+  str = str.trim();
 
-    document.getElementById('todayCount').textContent   = active.length + '건';
-    document.getElementById('todayCancelCount').textContent =
-      cancelled.length ? `취소 ${cancelled.length}건 / 변경 ${changed.length}건` : '취소·변경 없음';
-    document.getElementById('todayCancelCount').className = 'stat-sub ' + (cancelled.length ? 'down' : 'up');
-    document.getElementById('todayRevenue').textContent = won(revenue);
-
-    // 시간대별 차트
-    const hours = Array.from({length:12},(_,i)=>i+9);
-    const hourMap = {}; hours.forEach(h => hourMap[h]=0);
-    active.forEach(b => {
-      if(b.booking_time) { const h=parseInt(b.booking_time.split(':')[0]); if(hourMap[h]!==undefined) hourMap[h]++; }
-    });
-    destroyChart('todayTimeChart');
-    charts['todayTimeChart'] = new Chart(document.getElementById('todayTimeChart'), {
-      type:'bar',
-      data:{ labels:hours.map(h=>`${h}시`),
-        datasets:[{ label:'예약', data:hours.map(h=>hourMap[h]),
-          backgroundColor:hours.map(h=>hourMap[h]>0?'rgba(26,115,232,0.8)':'rgba(26,115,232,0.15)'),
-          borderRadius:6, borderSkipped:false }]},
-      options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{stepSize:1}},x:{grid:{display:false}}}, maintainAspectRatio:true }
-    });
-
-    renderBookings(bookings, 'todayBookings');
-  } catch(e) {
-    document.getElementById('todayBookings').innerHTML = `<div class="empty">오류: ${e.message}</div>`;
+  // 형식1: "2026.03.21.(토) 오후 4:00" 또는 "2026.03.21.(토) 오전 11:30"
+  let m = str.match(/(\d{4})\.(\d{2})\.(\d{2})\.[^오]*([오전후]+)\s+(\d{1,2}):(\d{2})/);
+  if (m) {
+    let h = parseInt(m[5]);
+    const min = m[6];
+    if (m[4] === '오후' && h < 12) h += 12;
+    if (m[4] === '오전' && h === 12) h = 0;
+    return {
+      date: `${m[1]}-${m[2]}-${m[3]}`,
+      time: `${String(h).padStart(2,'0')}:${min}:00`
+    };
   }
-}
 
-// ── 스케줄 탭 ─────────────────────────────────
-function initSchedule() {
-  if (!document.getElementById('schFrom').value) {
-    // 기본: 어제 ~ 내일 (어제 예약도 보이도록)
-    const yesterday = new Date(now); yesterday.setDate(now.getDate()-1);
-    const tomorrow  = new Date(now); tomorrow.setDate(now.getDate()+7);
-    document.getElementById('schFrom').value = toDateStr(yesterday);
-    document.getElementById('schTo').value   = toDateStr(tomorrow);
+  // 형식2: "2026.03.20. 17:51:38" (신청/취소 일시)
+  m = str.match(/(\d{4})\.(\d{2})\.(\d{2})\.\s*(\d{2}):(\d{2}):(\d{2})/);
+  if (m) {
+    return {
+      date: `${m[1]}-${m[2]}-${m[3]}`,
+      time: `${m[4]}:${m[5]}:${m[6]}`
+    };
   }
-  loadSchedule();
+
+  return null;
 }
 
-function setSchRange(type) {
-  const y=now.getFullYear(), m=now.getMonth(), d=now.getDate();
-  let from, to = toDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate()+7));
-  if (type==='today')  { from=toDateStr(now); to=toDateStr(now); }
-  else if (type==='3days') { const f=new Date(now); f.setDate(d-1); from=toDateStr(f); const t=new Date(now); t.setDate(d+1); to=toDateStr(t); }
-  else if (type==='week')  { const mn=new Date(now); mn.setDate(d-((now.getDay()+6)%7)); from=toDateStr(mn); const su=new Date(mn); su.setDate(mn.getDate()+6); to=toDateStr(su); }
-  else if (type==='month') { from=toDateStr(new Date(y,m,1)); to=toDateStr(new Date(y,m+1,0)); }
-  document.getElementById('schFrom').value = from;
-  document.getElementById('schTo').value   = to;
-  loadSchedule();
-}
-
-async function loadSchedule() {
-  const from = document.getElementById('schFrom').value;
-  const to   = document.getElementById('schTo').value;
-  if (!from || !to) return;
-
-  document.getElementById('scheduleList').innerHTML = '<div class="loading">스케줄 불러오는 중...</div>';
-
-  try {
-    const bookings = await sbGet('bookings', {
-      booking_date: `gte.${from}`,
-      and: `(booking_date.lte.${to})`,
-      order: 'booking_date.asc,booking_time.asc',
-      select: '*'
-    });
-
-    scheduleData = bookings;
-
-    // 통계 업데이트
-    document.getElementById('schTotal').textContent     = bookings.length + '건';
-    document.getElementById('schCancel').textContent    = bookings.filter(b=>b.status==='cancelled').length + '건';
-    document.getElementById('schChanged').textContent   = bookings.filter(b=>b.status==='changed').length + '건';
-    document.getElementById('schConfirmed').textContent = bookings.filter(b=>b.status==='confirmed'||b.status==='completed').length + '건';
-
-    renderSchedule(bookings);
-  } catch(e) {
-    document.getElementById('scheduleList').innerHTML = `<div class="empty">오류: ${e.message}</div>`;
-  }
-}
-
-function filterSchedule(type, btn) {
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const filtered = type === 'all' ? scheduleData : scheduleData.filter(b => b.status === type);
-  renderSchedule(filtered);
-}
-
-function renderSchedule(bookings) {
-  const el = document.getElementById('scheduleList');
-  if (!bookings.length) { el.innerHTML = '<div class="empty">해당 기간 예약이 없어요</div>'; return; }
-
-  // 날짜별 그룹핑
-  const grouped = {};
-  bookings.forEach(b => {
-    if (!grouped[b.booking_date]) grouped[b.booking_date] = [];
-    grouped[b.booking_date].push(b);
-  });
-
-  const todayStr = toDateStr(now);
-  el.innerHTML = Object.entries(grouped).map(([date, list]) => {
-    const d     = new Date(date);
-    const isToday  = date === todayStr;
-    const isTomorrow = date === toDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate()+1));
-    const label = isToday ? '오늘' : isTomorrow ? '내일' : `${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS[d.getDay()]})`;
-    const badge = isToday ? `<span class="today-badge">TODAY</span>` : `<span class="date-badge">${list.length}건</span>`;
-    const cards = list.map(b => bookingCardHtml(b)).join('');
-    return `<div class="date-section">
-      <div class="date-header">${label} ${badge}</div>
-      <div class="booking-list">${cards}</div>
-    </div>`;
-  }).join('');
-}
-
+// ── 예약 카드 HTML ──────────────────────────────
 function bookingCardHtml(b) {
   const endStr = minToTime(timeToMin(b.booking_time) + (b.duration_min||60));
   const statusMap = { confirmed:'예약확정', completed:'시술완료', cancelled:'취소됨', changed:'예약변경' };
   const tagClsMap = { confirmed:'tag-confirmed', completed:'tag-completed', cancelled:'tag-cancelled', changed:'tag-changed' };
-  const cardCls   = b.status + (b.is_new_customer ? ' new-customer' : '');
+  const cardCls = b.status + (b.is_new_customer?' new-customer':'');
+
+  // 취소/변경 부가정보
+  let extraInfo = '';
+  if (b.status === 'cancelled' && b.cancel_datetime) {
+    extraInfo = `<div class="booking-extra red">취소일시: ${b.cancel_datetime}</div>`;
+  }
+  if (b.status === 'changed' && b.request_datetime) {
+    extraInfo = `<div class="booking-extra orange">변경신청: ${b.request_datetime}</div>`;
+  }
+
   return `<div class="booking-card ${cardCls}">
     <div class="time-col">
       <div class="time-main">${b.booking_time?.slice(0,5)||'--:--'}</div>
@@ -219,8 +130,9 @@ function bookingCardHtml(b) {
       <div class="booking-service">${b.service_name}</div>
       <div class="booking-tags">
         <span class="tag ${tagClsMap[b.status]||'tag-confirmed'}">${statusMap[b.status]||b.status}</span>
-        ${b.is_new_customer ? '<span class="tag tag-new">신규</span>' : ''}
+        ${b.is_new_customer?'<span class="tag tag-new">신규</span>':''}
       </div>
+      ${extraInfo}
     </div>
     <div class="booking-price ${b.status==='cancelled'?'cancelled':''}">${won(b.service_price)}원</div>
   </div>`;
@@ -232,12 +144,136 @@ function renderBookings(bookings, elId) {
   el.innerHTML = bookings.map(b => bookingCardHtml(b)).join('');
 }
 
-// ── 주간 ──────────────────────────────────────
+// ── 오늘 ───────────────────────────────────────
+async function loadToday() {
+  document.getElementById('todayBookings').innerHTML = '<div class="loading">불러오는 중...</div>';
+  const today = toDateStr(now);
+  try {
+    const bookings = await sbGet('bookings', { booking_date:`eq.${today}`, order:'booking_time.asc', select:'*' });
+    const active    = bookings.filter(b => b.status !== 'cancelled');
+    const cancelled = bookings.filter(b => b.status === 'cancelled');
+    const changed   = bookings.filter(b => b.status === 'changed');
+    const revenue   = active.reduce((s,b) => s+(b.service_price||0), 0);
+
+    document.getElementById('todayCount').textContent = active.length+'건';
+    document.getElementById('todayCancelCount').textContent =
+      (cancelled.length||changed.length) ? `취소 ${cancelled.length}건 / 변경 ${changed.length}건` : '취소·변경 없음';
+    document.getElementById('todayCancelCount').className = 'stat-sub '+((cancelled.length||changed.length)?'down':'up');
+    document.getElementById('todayRevenue').textContent = won(revenue);
+
+    const hours = Array.from({length:12},(_,i)=>i+9);
+    const hourMap = {}; hours.forEach(h => hourMap[h]=0);
+    active.forEach(b => { if(b.booking_time){ const h=parseInt(b.booking_time.split(':')[0]); if(hourMap[h]!==undefined) hourMap[h]++; } });
+
+    destroyChart('todayTimeChart');
+    charts['todayTimeChart'] = new Chart(document.getElementById('todayTimeChart'), {
+      type:'bar',
+      data:{ labels:hours.map(h=>`${h}시`), datasets:[{ label:'예약',
+        data:hours.map(h=>hourMap[h]),
+        backgroundColor:hours.map(h=>hourMap[h]>0?'rgba(26,115,232,0.85)':'rgba(26,115,232,0.12)'),
+        borderRadius:6, borderSkipped:false }]},
+      options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{stepSize:1}},x:{grid:{display:false}}}, maintainAspectRatio:true }
+    });
+
+    renderBookings(bookings, 'todayBookings');
+  } catch(e) {
+    document.getElementById('todayBookings').innerHTML = `<div class="empty">오류: ${e.message}</div>`;
+  }
+}
+
+// ── 스케줄 ─────────────────────────────────────
+function initSchedule() {
+  if (!document.getElementById('schFrom').value) {
+    const yesterday = new Date(now); yesterday.setDate(now.getDate()-1);
+    const nextWeek  = new Date(now); nextWeek.setDate(now.getDate()+7);
+    document.getElementById('schFrom').value = toDateStr(yesterday);
+    document.getElementById('schTo').value   = toDateStr(nextWeek);
+  }
+  loadSchedule();
+}
+
+function setSchRange(type) {
+  const d = now.getDate(), y=now.getFullYear(), m=now.getMonth();
+  let from, to;
+  if (type==='today') { from=toDateStr(now); to=toDateStr(now); }
+  else if (type==='3days') { const f=new Date(now); f.setDate(d-1); from=toDateStr(f); const t=new Date(now); t.setDate(d+1); to=toDateStr(t); }
+  else if (type==='week') { const mn=new Date(now); mn.setDate(d-((now.getDay()+6)%7)); from=toDateStr(mn); const su=new Date(mn); su.setDate(mn.getDate()+6); to=toDateStr(su); }
+  else if (type==='month') { from=toDateStr(new Date(y,m,1)); to=toDateStr(new Date(y,m+1,0)); }
+  document.getElementById('schFrom').value=from;
+  document.getElementById('schTo').value=to;
+  loadSchedule();
+}
+
+async function loadSchedule() {
+  const from=document.getElementById('schFrom').value, to=document.getElementById('schTo').value;
+  if (!from||!to) return;
+  document.getElementById('scheduleList').innerHTML='<div class="loading">스케줄 불러오는 중...</div>';
+  try {
+    const bookings = await sbGet('bookings', {
+      booking_date:`gte.${from}`, and:`(booking_date.lte.${to})`,
+      order:'booking_date.asc,booking_time.asc', select:'*'
+    });
+    scheduleData = bookings;
+
+    const confirmed = bookings.filter(b=>b.status==='confirmed'||b.status==='completed');
+    const cancelled = bookings.filter(b=>b.status==='cancelled');
+    const changed   = bookings.filter(b=>b.status==='changed');
+
+    document.getElementById('schTotal').textContent     = bookings.length+'건';
+    document.getElementById('schCancel').textContent    = cancelled.length+'건';
+    document.getElementById('schChanged').textContent   = changed.length+'건';
+    document.getElementById('schConfirmed').textContent = confirmed.length+'건';
+
+    renderSchedule(bookings);
+  } catch(e) {
+    document.getElementById('scheduleList').innerHTML=`<div class="empty">오류: ${e.message}</div>`;
+  }
+}
+
+function filterSchedule(type, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered = type==='all' ? scheduleData : scheduleData.filter(b=>b.status===type);
+  renderSchedule(filtered);
+}
+
+function renderSchedule(bookings) {
+  const el = document.getElementById('scheduleList');
+  if (!bookings.length) { el.innerHTML='<div class="empty">해당 기간 예약이 없어요</div>'; return; }
+
+  const todayStr = toDateStr(now);
+  const tomorrowStr = toDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate()+1));
+
+  // 날짜별 그룹핑
+  const grouped = {};
+  bookings.forEach(b => { if(!grouped[b.booking_date]) grouped[b.booking_date]=[]; grouped[b.booking_date].push(b); });
+
+  el.innerHTML = Object.entries(grouped).map(([date, list]) => {
+    const d = new Date(date);
+    const isToday    = date === todayStr;
+    const isTomorrow = date === tomorrowStr;
+    const dayLabel   = isToday ? '오늘' : isTomorrow ? '내일' : `${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS[d.getDay()]})`;
+    const confirmedCnt = list.filter(b=>b.status==='confirmed'||b.status==='completed').length;
+    const cancelledCnt = list.filter(b=>b.status==='cancelled').length;
+    const changedCnt   = list.filter(b=>b.status==='changed').length;
+
+    const badge = isToday
+      ? `<span class="today-badge">TODAY</span>`
+      : `<span class="date-badge">${confirmedCnt}확정${cancelledCnt?` / ${cancelledCnt}취소`:''}${changedCnt?` / ${changedCnt}변경`:''}</span>`;
+
+    return `<div class="date-section">
+      <div class="date-header">${dayLabel} ${badge}</div>
+      <div class="booking-list">${list.map(b=>bookingCardHtml(b)).join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── 주간 ───────────────────────────────────────
 async function loadWeek() {
   const n=new Date(), mon=new Date(n); mon.setDate(n.getDate()-((n.getDay()+6)%7));
   const sun=new Date(mon); sun.setDate(mon.getDate()+6);
   try {
-    const bk = await sbGet('bookings',{booking_date:`gte.${toDateStr(mon)}`,and:`(booking_date.lte.${toDateStr(sun)})`,select:'booking_date,service_price,status'});
+    const bk=await sbGet('bookings',{booking_date:`gte.${toDateStr(mon)}`,and:`(booking_date.lte.${toDateStr(sun)})`,select:'booking_date,service_price,status'});
     const active=bk.filter(b=>b.status!=='cancelled'), cancelled=bk.filter(b=>b.status==='cancelled');
     const revenue=active.reduce((s,b)=>s+(b.service_price||0),0);
     const cancelRate=bk.length?Math.round(cancelled.length/bk.length*100):0;
@@ -249,13 +285,12 @@ async function loadWeek() {
     const dayRevMap={0:0,1:0,2:0,3:0,4:0,5:0,6:0}, dayCntMap={0:0,1:0,2:0,3:0,4:0,5:0,6:0};
     active.forEach(b=>{ const idx=(new Date(b.booking_date).getDay()+6)%7; dayRevMap[idx]+=(b.service_price||0); dayCntMap[idx]++; });
     const todayIdx=(now.getDay()+6)%7;
-    const bgColors=['월','화','수','목','금','토','일'].map((_,i)=>i===todayIdx?'rgba(26,115,232,0.9)':'rgba(26,115,232,0.35)');
 
     destroyChart('weekBarChart');
     charts['weekBarChart']=new Chart(document.getElementById('weekBarChart'),{
       type:'bar',
       data:{labels:['월','화','수','목','금','토','일'],datasets:[
-        {label:'매출(원)',data:Object.values(dayRevMap),backgroundColor:bgColors,borderRadius:8,borderSkipped:false,yAxisID:'y'},
+        {label:'매출(원)',data:Object.values(dayRevMap),backgroundColor:['월','화','수','목','금','토','일'].map((_,i)=>i===todayIdx?'rgba(26,115,232,0.9)':'rgba(26,115,232,0.3)'),borderRadius:8,borderSkipped:false,yAxisID:'y'},
         {label:'예약건',data:Object.values(dayCntMap),type:'line',borderColor:'#34a853',backgroundColor:'rgba(52,168,83,.1)',pointBackgroundColor:'#34a853',pointRadius:4,fill:true,tension:.4,yAxisID:'y1'}
       ]},
       options:{plugins:{legend:{position:'top',labels:{boxWidth:10,padding:12}}},scales:{y:{beginAtZero:true,position:'left',grid:{display:false}},y1:{beginAtZero:true,position:'right',grid:{display:false},ticks:{stepSize:1}}},maintainAspectRatio:true}
@@ -264,14 +299,16 @@ async function loadWeek() {
     destroyChart('weekDonutChart');
     charts['weekDonutChart']=new Chart(document.getElementById('weekDonutChart'),{
       type:'doughnut',
-      data:{labels:['예약완료','취소'],datasets:[{data:[active.length,cancelled.length],backgroundColor:['#1a73e8','#ea4335'],borderWidth:0,hoverOffset:4}]},
+      data:{labels:['예약','취소','변경'],datasets:[{
+        data:[active.filter(b=>b.status==='confirmed'||b.status==='completed').length, cancelled.length, bk.filter(b=>b.status==='changed').length],
+        backgroundColor:['#1a73e8','#ea4335','#ff9800'],borderWidth:0,hoverOffset:4}]},
       options:{plugins:{legend:{display:false}},cutout:'70%',maintainAspectRatio:true}
     });
-    makeLegend('weekLegend',['예약완료','취소'],['#1a73e8','#ea4335']);
+    makeLegend('weekLegend',['예약','취소','변경'],['#1a73e8','#ea4335','#ff9800']);
   } catch(e){ console.error(e); }
 }
 
-// ── 월간 ──────────────────────────────────────
+// ── 월간 ───────────────────────────────────────
 async function loadMonth() {
   const y=now.getFullYear(),m=now.getMonth();
   const first=toDateStr(new Date(y,m,1)), last=toDateStr(new Date(y,m+1,0));
@@ -310,7 +347,7 @@ async function loadMonth() {
   } catch(e){ console.error(e); }
 }
 
-// ── 기간별 ──────────────────────────────────────
+// ── 기간별 ─────────────────────────────────────
 function initRange() {
   if (!document.getElementById('dateFrom').value) {
     document.getElementById('dateFrom').value = toDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -326,6 +363,7 @@ async function loadRange() {
   try {
     const bk=await sbGet('bookings',{booking_date:`gte.${from}`,and:`(booking_date.lte.${to})`,order:'booking_date.asc,booking_time.asc',select:'*'});
     const active=bk.filter(b=>b.status!=='cancelled'), cancelled=bk.filter(b=>b.status==='cancelled');
+    const changed=bk.filter(b=>b.status==='changed');
     const revenue=active.reduce((s,b)=>s+(b.service_price||0),0);
     const cancelRate=bk.length?Math.round(cancelled.length/bk.length*100*10)/10:0;
     const avgPrice=active.length?Math.round(revenue/active.length):0;
@@ -336,7 +374,7 @@ async function loadRange() {
 
     resultEl.innerHTML=`
       <div class="stat-grid">
-        <div class="stat-card"><div class="stat-label">총 예약</div><div class="stat-value blue">${active.length}건</div><div class="stat-sub down">취소 ${cancelled.length}건</div></div>
+        <div class="stat-card"><div class="stat-label">총 예약</div><div class="stat-value blue">${active.length}건</div><div class="stat-sub down">취소 ${cancelled.length} / 변경 ${changed.length}건</div></div>
         <div class="stat-card"><div class="stat-label">총 매출</div><div class="stat-value green">${won(revenue)}</div><div class="stat-sub">원</div></div>
         <div class="stat-card"><div class="stat-label">평균 객단가</div><div class="stat-value purple">${won(avgPrice)}</div><div class="stat-sub">원</div></div>
         <div class="stat-card"><div class="stat-label">취소율</div><div class="stat-value red">${cancelRate}%</div></div>
@@ -357,6 +395,7 @@ async function loadRange() {
     const dateMap={};
     active.forEach(b=>{dateMap[b.booking_date]=(dateMap[b.booking_date]||0)+(b.service_price||0);});
     const dateKeys=Object.keys(dateMap).sort();
+
     destroyChart('rangeLineChart');
     charts['rangeLineChart']=new Chart(document.getElementById('rangeLineChart'),{
       type:'line',
@@ -389,7 +428,7 @@ function setRange(type) {
   loadRange();
 }
 
-// ── 분석 ──────────────────────────────────────
+// ── 분석 ───────────────────────────────────────
 async function loadStats() {
   const y=now.getFullYear();
   try {
@@ -413,7 +452,7 @@ async function loadStats() {
       type:'line',
       data:{labels:['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
         datasets:[{label:'월 매출',data:Object.values(monthMap),borderColor:'#1a73e8',backgroundColor:'rgba(26,115,232,.1)',fill:true,tension:.4,
-          pointRadius:Array.from({length:12},(_,i)=>i+1===curMonth?6:4),
+          pointRadius:Array.from({length:12},(_,i)=>i+1===curMonth?7:4),
           pointBackgroundColor:Array.from({length:12},(_,i)=>i+1===curMonth?'#ea4335':'#1a73e8')}]},
       options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'}},x:{grid:{display:false}}},maintainAspectRatio:true}
     });
@@ -428,7 +467,7 @@ async function loadStats() {
       type:'bar',
       data:{labels:svcEntries.map(([k])=>k),datasets:[
         {label:'매출',data:svcEntries.map(([,v])=>v.revenue),backgroundColor:svcColors,borderRadius:8,borderSkipped:false},
-        {label:'건수',data:svcEntries.map(([,v])=>v.count),backgroundColor:svcColors.map(c=>c+'66'),borderRadius:8,borderSkipped:false}
+        {label:'건수',data:svcEntries.map(([,v])=>v.count),backgroundColor:svcColors.map(c=>c+'55'),borderRadius:8,borderSkipped:false}
       ]},
       options:{indexAxis:'y',plugins:{legend:{position:'top',labels:{boxWidth:10,padding:10}}},scales:{x:{beginAtZero:true,grid:{display:false}},y:{grid:{display:false}}},maintainAspectRatio:true}
     });
@@ -443,6 +482,5 @@ async function loadStats() {
   } catch(e){ console.error(e); }
 }
 
-// ── 초기 로드 ──────────────────────────────────
 loadToday();
 setInterval(()=>{ if(currentPage==='today') loadToday(); }, 5*60*1000);
