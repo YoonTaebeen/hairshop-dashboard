@@ -106,14 +106,14 @@ function parseNaverDateTime(str) {
 // ── 예약 카드 HTML ──────────────────────────────
 function bookingCardHtml(b) {
   const endStr  = minToTime(timeToMin(b.booking_time) + (b.duration_min||60));
-  const statusMap  = { confirmed:'예약확정', completed:'시술완료', cancelled:'취소됨', changed:'예약변경', changed_cancel:'변경취소' };
-  const tagClsMap  = { confirmed:'tag-confirmed', completed:'tag-completed', cancelled:'tag-cancelled', changed:'tag-changed', changed_cancel:'tag-cancelled' };
+  const statusMap  = { confirmed:'예약확정', completed:'시술완료', cancelled:'취소됨', changed:'예약변경' };
+  const tagClsMap  = { confirmed:'tag-confirmed', completed:'tag-completed', cancelled:'tag-cancelled', changed:'tag-changed' };
   const cardCls = b.status + (b.is_new_customer?' new-customer':'');
-  const priceCls = (b.status==='cancelled'||b.status==='changed_cancel') ? 'cancelled' : '';
+  const priceCls = b.status==='cancelled' ? 'cancelled' : '';
 
   // 부가 날짜 정보
   let dateInfo = '';
-  if ((b.status==='cancelled'||b.status==='changed_cancel') && b.cancel_datetime) {
+  if (b.status==='cancelled' && b.cancel_datetime) {
     dateInfo = `<div class="booking-meta">🚫 취소: ${b.cancel_datetime}</div>`;
   } else if (b.status==='changed' && b.request_datetime) {
     dateInfo = `<div class="booking-meta">🔄 변경: ${b.request_datetime}</div>`;
@@ -233,6 +233,7 @@ async function loadSchedule() {
     document.getElementById('schCancel').textContent    = cancelled.length+'건';
     document.getElementById('schChanged').textContent   = changed.length+'건';
     document.getElementById('schConfirmed').textContent = confirmed.length+'건';
+    // 필터 버튼에서 cancelled가 변경취소(cancelled)도 포함하도록 이미 처리됨
 
     renderSchedule(bookings);
   } catch(e) {
