@@ -9,126 +9,132 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root {
-    --primary: #1a73e8; --primary-light: #e8f0fe;
-    --green: #34a853; --green-light: #e6f4ea;
-    --red: #ea4335; --red-light: #fce8e6;
-    --amber: #fbbc04; --amber-light: #fef7e0;
-    --purple: #9c27b0; --purple-light: #f3e5f5;
-    --gray-50: #fafafa; --gray-100: #f5f5f5;
-    --gray-200: #e0e0e0; --gray-400: #9e9e9e;
-    --gray-600: #616161; --gray-800: #212121;
-    --radius: 16px; --radius-sm: 10px;
-    --shadow: 0 2px 8px rgba(0,0,0,.08);
+    --primary:#1a73e8; --primary-light:#e8f0fe;
+    --green:#34a853; --green-light:#e6f4ea;
+    --red:#ea4335; --red-light:#fce8e6;
+    --amber:#fbbc04; --amber-light:#fef7e0;
+    --purple:#9c27b0; --purple-light:#f3e5f5;
+    --orange:#ff9800; --orange-light:#fff3e0;
+    --gray-50:#fafafa; --gray-100:#f5f5f5; --gray-200:#e0e0e0;
+    --gray-400:#9e9e9e; --gray-600:#616161; --gray-800:#212121;
+    --radius:16px; --radius-sm:10px;
+    --shadow:0 2px 8px rgba(0,0,0,.08);
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; background: #f0f2f5; color: var(--gray-800); padding-bottom: 80px; }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#f0f2f5;color:var(--gray-800);padding-bottom:80px;}
 
-  /* 헤더 */
-  .header { background: var(--primary); padding: 20px 20px 16px; color: #fff; position: sticky; top: 0; z-index: 100; }
-  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-  .shop-name { font-size: 18px; font-weight: 700; }
-  .live-badge { display: flex; align-items: center; gap: 5px; font-size: 11px; background: rgba(255,255,255,.2); padding: 4px 10px; border-radius: 20px; }
-  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #69f0ae; animation: blink 1.5s infinite; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-  .header-date { font-size: 12px; opacity: .8; }
+  .header{background:var(--primary);padding:20px 20px 14px;color:#fff;position:sticky;top:0;z-index:100;}
+  .header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  .shop-name{font-size:18px;font-weight:700;}
+  .header-right{display:flex;align-items:center;gap:8px;}
+  .live-badge{display:flex;align-items:center;gap:5px;font-size:11px;background:rgba(255,255,255,.2);padding:4px 10px;border-radius:20px;}
+  .live-dot{width:6px;height:6px;border-radius:50%;background:#69f0ae;animation:blink 1.5s infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .refresh-top-btn{background:rgba(255,255,255,.2);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .refresh-top-btn:active{background:rgba(255,255,255,.4);transform:rotate(180deg);}
+  .header-date{font-size:12px;opacity:.8;}
 
-  /* 탭 */
-  .tab-bar { display: flex; background: #fff; border-bottom: 1px solid var(--gray-200); position: sticky; top: 69px; z-index: 99; overflow-x: auto; scrollbar-width: none; }
-  .tab-bar::-webkit-scrollbar { display: none; }
-  .tab-btn { flex: 1; min-width: 60px; padding: 13px 4px; font-size: 12px; font-weight: 500; border: none; background: transparent; color: var(--gray-400); cursor: pointer; border-bottom: 3px solid transparent; transition: all .2s; white-space: nowrap; }
-  .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
+  .tab-bar{display:flex;background:#fff;border-bottom:1px solid var(--gray-200);position:sticky;top:69px;z-index:99;overflow-x:auto;scrollbar-width:none;}
+  .tab-bar::-webkit-scrollbar{display:none;}
+  .tab-btn{flex:1;min-width:56px;padding:12px 4px;font-size:12px;font-weight:500;border:none;background:transparent;color:var(--gray-400);cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap;}
+  .tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:700;}
 
-  /* 페이지 */
-  .page { display: none; padding: 16px; }
-  .page.active { display: block; }
+  .page{display:none;padding:16px;}
+  .page.active{display:block;}
 
-  /* 카드 */
-  .card { background: #fff; border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
-  .card-title { font-size: 13px; font-weight: 600; color: var(--gray-600); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
-  .card-title::before { content: ''; width: 3px; height: 14px; background: var(--primary); border-radius: 2px; }
+  .card{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:12px;}
+  .card-title{font-size:13px;font-weight:600;color:var(--gray-600);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+  .card-title::before{content:'';width:3px;height:14px;background:var(--primary);border-radius:2px;}
 
-  /* 통계 그리드 */
-  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-  .stat-card { background: #fff; border-radius: var(--radius-sm); padding: 14px 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
-  .stat-card::after { content: ''; position: absolute; right: -10px; top: -10px; width: 60px; height: 60px; border-radius: 50%; opacity: .08; }
-  .stat-card.blue::after { background: var(--primary); }
-  .stat-card.green::after { background: var(--green); }
-  .stat-card.red::after { background: var(--red); }
-  .stat-card.purple::after { background: var(--purple); }
-  .stat-label { font-size: 11px; color: var(--gray-400); margin-bottom: 6px; font-weight: 500; }
-  .stat-value { font-size: 22px; font-weight: 800; }
-  .stat-value.blue { color: var(--primary); }
-  .stat-value.green { color: var(--green); }
-  .stat-value.red { color: var(--red); }
-  .stat-value.purple { color: var(--purple); }
-  .stat-sub { font-size: 11px; margin-top: 4px; color: var(--gray-400); }
-  .stat-sub.up { color: var(--green); }
-  .stat-sub.down { color: var(--red); }
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+  .stat-card{background:#fff;border-radius:var(--radius-sm);padding:14px 16px;box-shadow:var(--shadow);}
+  .stat-label{font-size:11px;color:var(--gray-400);margin-bottom:6px;font-weight:500;}
+  .stat-value{font-size:22px;font-weight:800;}
+  .stat-value.blue{color:var(--primary);}
+  .stat-value.green{color:var(--green);}
+  .stat-value.red{color:var(--red);}
+  .stat-value.purple{color:var(--purple);}
+  .stat-value.orange{color:var(--orange);}
+  .stat-sub{font-size:11px;margin-top:4px;color:var(--gray-400);}
+  .stat-sub.up{color:var(--green);}
+  .stat-sub.down{color:var(--red);}
 
-  /* 차트 */
-  .chart-wrap { position: relative; width: 100%; }
-  .chart-wrap canvas { max-height: 220px; }
-  .chart-wrap.tall canvas { max-height: 260px; }
-  .chart-wrap.donut canvas { max-height: 200px; }
+  .chart-wrap{position:relative;width:100%;}
+  .chart-wrap canvas{max-height:220px;}
+  .chart-wrap.tall canvas{max-height:260px;}
+  .chart-wrap.donut canvas{max-height:200px;}
 
   /* 예약 카드 */
-  .booking-list { display: flex; flex-direction: column; gap: 8px; }
-  .booking-card { background: #fff; border-radius: var(--radius-sm); padding: 12px 14px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow); border-left: 4px solid transparent; }
-  .booking-card.confirmed { border-left-color: var(--primary); }
-  .booking-card.completed { border-left-color: var(--green); }
-  .booking-card.cancelled { border-left-color: var(--gray-200); opacity: .5; }
-  .booking-card.new-customer { background: #fff8e1; }
-  .time-col { text-align: center; min-width: 44px; }
-  .time-main { font-size: 14px; font-weight: 800; }
-  .time-end { font-size: 10px; color: var(--gray-400); }
-  .vline { width: 1px; height: 36px; background: var(--gray-200); }
-  .booking-info { flex: 1; min-width: 0; }
-  .booking-name { font-size: 14px; font-weight: 700; }
-  .booking-service { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
-  .booking-tags { display: flex; gap: 4px; margin-top: 4px; }
-  .tag { font-size: 10px; padding: 2px 7px; border-radius: 8px; font-weight: 600; }
-  .tag-confirmed { background: var(--primary-light); color: var(--primary); }
-  .tag-completed { background: var(--green-light); color: var(--green); }
-  .tag-cancelled { background: var(--red-light); color: var(--red); }
-  .tag-new { background: var(--amber-light); color: #e65100; }
-  .booking-price { font-size: 13px; font-weight: 800; color: var(--gray-800); white-space: nowrap; }
-  .booking-price.cancelled { text-decoration: line-through; color: var(--gray-400); font-weight: 400; }
+  .booking-list{display:flex;flex-direction:column;gap:8px;}
+  .booking-card{background:#fff;border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);border-left:4px solid transparent;}
+  .booking-card.confirmed{border-left-color:var(--primary);}
+  .booking-card.completed{border-left-color:var(--green);}
+  .booking-card.cancelled{border-left-color:var(--gray-200);opacity:.5;}
+  .booking-card.changed{border-left-color:var(--orange);}
+  .booking-card.new-customer{background:#fffde7;}
+  .time-col{text-align:center;min-width:44px;}
+  .time-main{font-size:14px;font-weight:800;}
+  .time-end{font-size:10px;color:var(--gray-400);}
+  .vline{width:1px;height:36px;background:var(--gray-200);}
+  .booking-info{flex:1;min-width:0;}
+  .booking-name{font-size:14px;font-weight:700;}
+  .booking-service{font-size:11px;color:var(--gray-400);margin-top:2px;}
+  .booking-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;}
+  .tag{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;}
+  .tag-confirmed{background:var(--primary-light);color:var(--primary);}
+  .tag-completed{background:var(--green-light);color:var(--green);}
+  .tag-cancelled{background:var(--red-light);color:var(--red);}
+  .tag-changed{background:var(--orange-light);color:var(--orange);}
+  .tag-new{background:var(--amber-light);color:#e65100;}
+  .booking-price{font-size:13px;font-weight:800;color:var(--gray-800);white-space:nowrap;}
+  .booking-price.cancelled{text-decoration:line-through;color:var(--gray-400);font-weight:400;}
+
+  /* 스케줄 탭 */
+  .schedule-filter{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+  .filter-btn{padding:6px 14px;border:1.5px solid var(--gray-200);border-radius:20px;font-size:12px;font-weight:600;background:#fff;color:var(--gray-600);cursor:pointer;transition:all .15s;}
+  .filter-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .filter-btn.green.active{background:var(--green);border-color:var(--green);}
+  .filter-btn.red.active{background:var(--red);border-color:var(--red);}
+  .filter-btn.orange.active{background:var(--orange);border-color:var(--orange);}
+  .date-section{margin-bottom:16px;}
+  .date-header{font-size:13px;font-weight:700;color:var(--gray-600);padding:8px 4px;display:flex;align-items:center;gap:8px;}
+  .date-header .date-badge{background:var(--primary);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;}
+  .date-header .today-badge{background:var(--green);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;}
 
   /* 기간별 */
-  .date-picker-wrap { background: #fff; border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
-  .date-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  .date-row label { font-size: 12px; color: var(--gray-600); font-weight: 600; min-width: 28px; }
-  .date-row input[type=date] { flex: 1; padding: 9px 12px; border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 13px; color: var(--gray-800); background: var(--gray-50); }
-  .quick-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-  .quick-btn { padding: 6px 12px; background: var(--gray-100); border: 1.5px solid var(--gray-200); border-radius: 20px; font-size: 11px; font-weight: 600; color: var(--gray-600); cursor: pointer; transition: all .15s; }
-  .quick-btn:active, .quick-btn.active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
-  .search-btn { width: 100%; padding: 13px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: .02em; }
+  .date-picker-wrap{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:12px;}
+  .date-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .date-row label{font-size:12px;color:var(--gray-600);font-weight:600;min-width:28px;}
+  .date-row input[type=date]{flex:1;padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:13px;color:var(--gray-800);background:var(--gray-50);}
+  .quick-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .quick-btn{padding:6px 12px;background:var(--gray-100);border:1.5px solid var(--gray-200);border-radius:20px;font-size:11px;font-weight:600;color:var(--gray-600);cursor:pointer;}
+  .quick-btn:active{background:var(--primary-light);border-color:var(--primary);color:var(--primary);}
+  .search-btn{width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;}
 
-  /* 빈 상태 / 로딩 */
-  .empty { text-align: center; padding: 40px 0; color: var(--gray-400); font-size: 14px; }
-  .loading { text-align: center; padding: 30px; color: var(--gray-400); font-size: 13px; }
-
-  /* 새로고침 */
-  .refresh-btn { width: 100%; padding: 12px; background: var(--primary-light); color: var(--primary); border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 12px; }
-
-  /* 범례 */
-  .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--gray-600); }
-  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .empty{text-align:center;padding:40px 0;color:var(--gray-400);font-size:14px;}
+  .loading{text-align:center;padding:30px;color:var(--gray-400);font-size:13px;}
+  .refresh-btn{width:100%;padding:12px;background:var(--primary-light);color:var(--primary);border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;margin-top:12px;}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gray-600);}
+  .legend-dot{width:10px;height:10px;border-radius:50%;}
 </style>
 </head>
 <body>
 
 <div class="header">
   <div class="header-top">
-    <span class="shop-name" id="shopName">✂️ 헤어샵 예약 관리</span>
-    <div class="live-badge"><div class="live-dot"></div>실시간</div>
+    <span class="shop-name">✂️ 헤어샵 예약 관리</span>
+    <div class="header-right">
+      <button class="refresh-top-btn" onclick="hardRefresh()" title="새로고침">↻</button>
+      <div class="live-badge"><div class="live-dot"></div>실시간</div>
+    </div>
   </div>
   <div class="header-date" id="headerDate"></div>
 </div>
 
 <div class="tab-bar">
   <button class="tab-btn active" onclick="switchPage('today')">오늘</button>
+  <button class="tab-btn" onclick="switchPage('schedule')">스케줄</button>
   <button class="tab-btn" onclick="switchPage('week')">주간</button>
   <button class="tab-btn" onclick="switchPage('month')">월간</button>
   <button class="tab-btn" onclick="switchPage('range')">기간별</button>
@@ -138,28 +144,67 @@
 <!-- 오늘 -->
 <div id="today" class="page active">
   <div class="stat-grid">
-    <div class="stat-card blue"><div class="stat-label">오늘 예약</div><div class="stat-value blue" id="todayCount">-</div><div class="stat-sub" id="todayCancelCount"></div></div>
-    <div class="stat-card green"><div class="stat-label">오늘 예상 매출</div><div class="stat-value green" id="todayRevenue">-</div><div class="stat-sub">원</div></div>
+    <div class="stat-card"><div class="stat-label">오늘 예약</div><div class="stat-value blue" id="todayCount">-</div><div class="stat-sub" id="todayCancelCount"></div></div>
+    <div class="stat-card"><div class="stat-label">오늘 예상 매출</div><div class="stat-value green" id="todayRevenue">-</div><div class="stat-sub">원</div></div>
   </div>
   <div class="card">
     <div class="card-title">시간대별 예약</div>
     <div class="chart-wrap"><canvas id="todayTimeChart"></canvas></div>
   </div>
   <div class="card">
-    <div class="card-title">예약 현황</div>
+    <div class="card-title">오늘 예약 현황</div>
     <div class="booking-list" id="todayBookings"><div class="loading">불러오는 중...</div></div>
   </div>
-  <button class="refresh-btn" onclick="loadToday()">새로고침</button>
+  <button class="refresh-btn" onclick="hardRefresh()">↻ 새로고침 (완전 초기화)</button>
+</div>
+
+<!-- 스케줄 -->
+<div id="schedule" class="page">
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">전체</div><div class="stat-value blue" id="schTotal">-</div></div>
+    <div class="stat-card"><div class="stat-label">취소</div><div class="stat-value red" id="schCancel">-</div></div>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">변경</div><div class="stat-value orange" id="schChanged">-</div></div>
+    <div class="stat-card"><div class="stat-label">확정</div><div class="stat-value green" id="schConfirmed">-</div></div>
+  </div>
+
+  <!-- 날짜 선택 -->
+  <div class="date-picker-wrap" style="padding:12px;">
+    <div class="date-row">
+      <label>시작</label><input type="date" id="schFrom">
+      <label style="min-width:auto">~</label>
+      <input type="date" id="schTo">
+    </div>
+    <div class="quick-btns">
+      <button class="quick-btn" onclick="setSchRange('today')">오늘</button>
+      <button class="quick-btn" onclick="setSchRange('3days')">최근 3일</button>
+      <button class="quick-btn" onclick="setSchRange('week')">이번주</button>
+      <button class="quick-btn" onclick="setSchRange('month')">이번달</button>
+    </div>
+    <button class="search-btn" onclick="loadSchedule()">스케줄 조회</button>
+  </div>
+
+  <!-- 필터 -->
+  <div class="schedule-filter">
+    <button class="filter-btn active" onclick="filterSchedule('all',this)">전체</button>
+    <button class="filter-btn green" onclick="filterSchedule('confirmed',this)">확정</button>
+    <button class="filter-btn red" onclick="filterSchedule('cancelled',this)">취소</button>
+    <button class="filter-btn orange" onclick="filterSchedule('changed',this)">변경</button>
+    <button class="filter-btn" onclick="filterSchedule('completed',this)">완료</button>
+  </div>
+
+  <div id="scheduleList"><div class="empty">날짜를 선택하고 조회해주세요</div></div>
 </div>
 
 <!-- 주간 -->
 <div id="week" class="page">
   <div class="stat-grid">
-    <div class="stat-card blue"><div class="stat-label">이번주 예약</div><div class="stat-value blue" id="weekCount">-</div><div class="stat-sub" id="weekCancelRate"></div></div>
-    <div class="stat-card green"><div class="stat-label">주간 매출</div><div class="stat-value green" id="weekRevenue">-</div><div class="stat-sub">원</div></div>
+    <div class="stat-card"><div class="stat-label">이번주 예약</div><div class="stat-value blue" id="weekCount">-</div><div class="stat-sub" id="weekCancelRate"></div></div>
+    <div class="stat-card"><div class="stat-label">주간 매출</div><div class="stat-value green" id="weekRevenue">-</div><div class="stat-sub">원</div></div>
   </div>
   <div class="card">
-    <div class="card-title">요일별 매출</div>
+    <div class="card-title">요일별 매출 + 예약건수</div>
     <div class="chart-wrap tall"><canvas id="weekBarChart"></canvas></div>
   </div>
   <div class="card">
@@ -172,8 +217,8 @@
 <!-- 월간 -->
 <div id="month" class="page">
   <div class="stat-grid">
-    <div class="stat-card blue"><div class="stat-label">이번달 예약</div><div class="stat-value blue" id="monthCount">-</div><div class="stat-sub" id="monthCancelRate"></div></div>
-    <div class="stat-card green"><div class="stat-label">이번달 매출</div><div class="stat-value green" id="monthRevenue">-</div><div class="stat-sub">원</div></div>
+    <div class="stat-card"><div class="stat-label">이번달 예약</div><div class="stat-value blue" id="monthCount">-</div><div class="stat-sub" id="monthCancelRate"></div></div>
+    <div class="stat-card"><div class="stat-label">이번달 매출</div><div class="stat-value green" id="monthRevenue">-</div><div class="stat-sub">원</div></div>
   </div>
   <div class="card">
     <div class="card-title">일별 매출 추이</div>
@@ -206,12 +251,12 @@
 <!-- 분석 -->
 <div id="stats" class="page">
   <div class="stat-grid">
-    <div class="stat-card blue"><div class="stat-label">올해 총 매출</div><div class="stat-value blue" id="yearRevenue">-</div><div class="stat-sub">원</div></div>
-    <div class="stat-card green"><div class="stat-label">평균 객단가</div><div class="stat-value green" id="avgPrice">-</div><div class="stat-sub">원/건</div></div>
+    <div class="stat-card"><div class="stat-label">올해 총 매출</div><div class="stat-value blue" id="yearRevenue">-</div><div class="stat-sub">원</div></div>
+    <div class="stat-card"><div class="stat-label">평균 객단가</div><div class="stat-value green" id="avgPrice">-</div><div class="stat-sub">원/건</div></div>
   </div>
   <div class="stat-grid">
-    <div class="stat-card red"><div class="stat-label">취소율</div><div class="stat-value red" id="cancelRate">-</div></div>
-    <div class="stat-card purple"><div class="stat-label">신규 고객</div><div class="stat-value purple" id="newCustRate">-</div></div>
+    <div class="stat-card"><div class="stat-label">취소율</div><div class="stat-value red" id="cancelRate">-</div></div>
+    <div class="stat-card"><div class="stat-label">신규 고객</div><div class="stat-value purple" id="newCustRate">-</div></div>
   </div>
   <div class="card">
     <div class="card-title">월별 매출 추이</div>
