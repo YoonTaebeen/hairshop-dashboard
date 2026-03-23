@@ -57,12 +57,12 @@ function switchPage(name) {
 // ── DB 조회 ──────────────────────────────────
 async function sbGet(table, params={}) {
   const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
-  // 캐시 방지
-  url.searchParams.set('_t', Date.now());
   Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
   const res = await fetch(url, {
     headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
-               'Cache-Control': 'no-cache', Pragma: 'no-cache' }
+               'Cache-Control': 'no-cache, no-store, must-revalidate',
+               'Pragma': 'no-cache', 'Expires': '0' },
+    cache: 'no-store'
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
