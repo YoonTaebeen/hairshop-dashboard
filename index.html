@@ -76,17 +76,21 @@
   .time-main{font-size:14px;font-weight:800;}
   .time-end{font-size:10px;color:var(--gray-400);}
   .vline{width:1px;height:36px;background:var(--gray-200);}
+  .booking-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;}
+  .booking-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
   .booking-info{flex:1;min-width:0;}
-  .booking-name{font-size:14px;font-weight:700;}
-  .booking-service{font-size:11px;color:var(--gray-400);margin-top:2px;}
+  .booking-name{font-size:15px;font-weight:800;color:var(--gray-800);}
+  .booking-service{font-size:12px;font-weight:600;color:var(--primary);margin-top:3px;}
   .booking-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;}
+  .booking-meta{font-size:10px;color:var(--gray-400);margin-top:3px;}
+  .booking-memo{font-size:11px;color:var(--gray-600);background:var(--gray-100);border-radius:6px;padding:5px 8px;border-left:3px solid var(--amber);margin-top:2px;}
   .tag{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;}
   .tag-confirmed{background:var(--primary-light);color:var(--primary);}
   .tag-completed{background:var(--green-light);color:var(--green);}
   .tag-cancelled{background:var(--red-light);color:var(--red);}
   .tag-changed{background:var(--orange-light);color:var(--orange);}
   .tag-new{background:var(--amber-light);color:#e65100;}
-  .booking-price{font-size:13px;font-weight:800;color:var(--gray-800);white-space:nowrap;}
+  .booking-price{font-size:15px;font-weight:800;color:var(--gray-800);white-space:nowrap;flex-shrink:0;}
   .booking-price.cancelled{text-decoration:line-through;color:var(--gray-400);font-weight:400;}
 
   /* 스케줄 탭 */

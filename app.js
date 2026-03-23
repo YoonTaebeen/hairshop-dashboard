@@ -105,19 +105,24 @@ function parseNaverDateTime(str) {
 
 // ── 예약 카드 HTML ──────────────────────────────
 function bookingCardHtml(b) {
-  const endStr = minToTime(timeToMin(b.booking_time) + (b.duration_min||60));
-  const statusMap = { confirmed:'예약확정', completed:'시술완료', cancelled:'취소됨', changed:'예약변경' };
-  const tagClsMap = { confirmed:'tag-confirmed', completed:'tag-completed', cancelled:'tag-cancelled', changed:'tag-changed' };
+  const endStr  = minToTime(timeToMin(b.booking_time) + (b.duration_min||60));
+  const statusMap  = { confirmed:'예약확정', completed:'시술완료', cancelled:'취소됨', changed:'예약변경', changed_cancel:'변경취소' };
+  const tagClsMap  = { confirmed:'tag-confirmed', completed:'tag-completed', cancelled:'tag-cancelled', changed:'tag-changed', changed_cancel:'tag-cancelled' };
   const cardCls = b.status + (b.is_new_customer?' new-customer':'');
+  const priceCls = (b.status==='cancelled'||b.status==='changed_cancel') ? 'cancelled' : '';
 
-  // 취소/변경 부가정보
-  let extraInfo = '';
-  if (b.status === 'cancelled' && b.cancel_datetime) {
-    extraInfo = `<div class="booking-extra red">취소일시: ${b.cancel_datetime}</div>`;
+  // 부가 날짜 정보
+  let dateInfo = '';
+  if ((b.status==='cancelled'||b.status==='changed_cancel') && b.cancel_datetime) {
+    dateInfo = `<div class="booking-meta">🚫 취소: ${b.cancel_datetime}</div>`;
+  } else if (b.status==='changed' && b.request_datetime) {
+    dateInfo = `<div class="booking-meta">🔄 변경: ${b.request_datetime}</div>`;
   }
-  if (b.status === 'changed' && b.request_datetime) {
-    extraInfo = `<div class="booking-extra orange">변경신청: ${b.request_datetime}</div>`;
-  }
+
+  // 요청사항
+  const memoHtml = b.memo
+    ? `<div class="booking-memo">💬 ${b.memo}</div>`
+    : '';
 
   return `<div class="booking-card ${cardCls}">
     <div class="time-col">
@@ -125,16 +130,21 @@ function bookingCardHtml(b) {
       <div class="time-end">~${endStr}</div>
     </div>
     <div class="vline"></div>
-    <div class="booking-info">
-      <div class="booking-name">${b.customer_name}</div>
-      <div class="booking-service">${b.service_name}</div>
-      <div class="booking-tags">
-        <span class="tag ${tagClsMap[b.status]||'tag-confirmed'}">${statusMap[b.status]||b.status}</span>
-        ${b.is_new_customer?'<span class="tag tag-new">신규</span>':''}
+    <div class="booking-body">
+      <div class="booking-top">
+        <div class="booking-info">
+          <div class="booking-name">${b.customer_name}</div>
+          <div class="booking-service">${b.service_name}</div>
+          <div class="booking-tags">
+            <span class="tag ${tagClsMap[b.status]||'tag-confirmed'}">${statusMap[b.status]||b.status}</span>
+            ${b.is_new_customer?'<span class="tag tag-new">신규</span>':''}
+          </div>
+          ${dateInfo}
+        </div>
+        <div class="booking-price ${priceCls}">${won(b.service_price)}원</div>
       </div>
-      ${extraInfo}
+      ${memoHtml}
     </div>
-    <div class="booking-price ${b.status==='cancelled'?'cancelled':''}">${won(b.service_price)}원</div>
   </div>`;
 }
 
