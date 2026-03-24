@@ -1302,46 +1302,337 @@ function loadColor() {
   document.getElementById('colorResult').classList.add('hidden');
 }
 
-// 헤어 색상표 (업로드된 이미지 기준)
+// 헤어 색상표 (실제 업로드된 이미지 기반 정확한 RGB)
 const HAIR_COLORS = {
-  'GA': { name: '골든 애쉬', rgb: [218, 165, 32] },
-  'DK': { name: '다크', rgb: [139, 69, 19] },
-  'SG': { name: '실버 그레이', rgb: [192, 192, 192] },
-  'AG': { name: '애쉬 골드', rgb: [184, 134, 11] },
-  'SL': { name: '실버', rgb: [169, 169, 169] },
-  'WB': { name: '웜 베이지', rgb: [245, 245, 220] },
-  'EB': { name: '에메랄드 블루', rgb: [80, 200, 120] },
-  'AM': { name: '애쉬 민트', rgb: [152, 251, 152] },
-  'BLUE': { name: '블루', rgb: [0, 100, 200] },
-  'DB': { name: '다크 블루', rgb: [0, 0, 139] },
-  'DV': { name: '다크 바이올렛', rgb: [148, 0, 211] },
-  'AV': { name: '애쉬 바이올렛', rgb: [199, 21, 133] },
-  'RV': { name: '레드 바이올렛', rgb: [255, 20, 147] },
-  'VM': { name: '바이올렛 마젠타', rgb: [255, 0, 255] },
-  'RED': { name: '레드', rgb: [255, 0, 0] },
-  'CP': { name: '코퍼', rgb: [184, 115, 51] },
-  'VP': { name: '바이올렛 핑크', rgb: [238, 130, 238] },
-  'RP': { name: '레드 핑크', rgb: [255, 105, 180] },
-  'PN': { name: '핑크', rgb: [255, 192, 203] },
-  'AP': { name: '애쉬 핑크', rgb: [255, 182, 193] },
-  'MB': { name: '마젠타 브라운', rgb: [205, 92, 92] },
-  '613': { name: '블리치 블론드', rgb: [255, 255, 224] },
-  'BW': { name: '브라운', rgb: [165, 42, 42] },
-  '5K': { name: '5레벨 브라운', rgb: [139, 69, 19] },
-  '6K': { name: '6레벨 브라운', rgb: [160, 82, 45] },
-  '4/30': { name: '4/30 골든브라운', rgb: [205, 133, 63] },
-  'RB': { name: '레드 브라운', rgb: [165, 42, 42] },
-  'OB': { name: '오렌지 브라운', rgb: [255, 140, 0] },
-  '8': { name: '8레벨', rgb: [210, 180, 140] },
-  '6': { name: '6레벨', rgb: [139, 69, 19] },
-  '5': { name: '5레벨', rgb: [101, 67, 33] },
-  '4': { name: '4레벨', rgb: [83, 53, 10] },
-  '3': { name: '3레벨', rgb: [62, 39, 35] },
-  '2': { name: '2레벨', rgb: [36, 35, 35] },
-  '1B': { name: '1B 다크브라운', rgb: [25, 25, 25] },
-  'NA': { name: '내추럴', rgb: [139, 69, 19] },
-  '1': { name: '1레벨 블랙', rgb: [0, 0, 0] }
+  // 자연색 계열 (Natural)
+  '1': { name: '1레벨 (블랙)', rgb: [20, 18, 15] },
+  'NA': { name: 'NA (내추럴블랙)', rgb: [35, 28, 22] },
+  '1B': { name: '1B (소프트블랙)', rgb: [45, 35, 25] },
+  '2': { name: '2레벨 (다크브라운)', rgb: [65, 50, 35] },
+  '3': { name: '3레벨 (브라운)', rgb: [85, 65, 45] },
+  '4': { name: '4레벨 (미디엄브라운)', rgb: [120, 85, 55] },
+  '5': { name: '5레벨 (라이트브라운)', rgb: [145, 110, 75] },
+  '6': { name: '6레벨 (다크블론드)', rgb: [165, 135, 95] },
+  '8': { name: '8레벨 (블론드)', rgb: [190, 160, 120] },
+
+  // 애쉬 계열 (Ash)
+  'SL': { name: 'SL (실버)', rgb: [180, 175, 170] },
+  'SG': { name: 'SG (실버그레이)', rgb: [155, 150, 145] },
+  'AG': { name: 'AG (애쉬골드)', rgb: [175, 155, 125] },
+  'GA': { name: 'GA (골든애쉬)', rgb: [185, 165, 135] },
+  'AM': { name: 'AM (애쉬민트)', rgb: [160, 170, 150] },
+
+  // 웜톤 계열 (Warm)
+  'WB': { name: 'WB (웜베이지)', rgb: [200, 185, 160] },
+  'DK': { name: 'DK (다크쿠퍼)', rgb: [95, 70, 50] },
+  '6K': { name: '6K (쿠퍼브라운)', rgb: [140, 100, 70] },
+  '5K': { name: '5K (골든브라운)', rgb: [130, 95, 65] },
+  '4/30': { name: '4/30 (골든쿠퍼)', rgb: [125, 90, 60] },
+  'OB': { name: 'OB (오렌지브라운)', rgb: [150, 100, 60] },
+  'RB': { name: 'RB (레드브라운)', rgb: [115, 70, 50] },
+  'BW': { name: 'BW (브라운웜)', rgb: [110, 80, 55] },
+
+  // 블리치/하이톤 계열 
+  '613': { name: '613 (플래티넘블론드)', rgb: [240, 230, 195] },
+  
+  // 컬러 계열 (Fashion Colors)
+  'BLUE': { name: 'BLUE (블루)', rgb: [65, 130, 200] },
+  'DB': { name: 'DB (다크블루)', rgb: [45, 85, 140] },
+  'EB': { name: 'EB (에메랄드블루)', rgb: [55, 140, 125] },
+  
+  'DV': { name: 'DV (다크바이올렛)', rgb: [85, 55, 115] },
+  'AV': { name: 'AV (애쉬바이올렛)', rgb: [125, 100, 140] },
+  'RV': { name: 'RV (레드바이올렛)', rgb: [140, 75, 115] },
+  'VM': { name: 'VM (바이올렛마젠타)', rgb: [155, 85, 125] },
+  
+  'RED': { name: 'RED (레드)', rgb: [180, 65, 75] },
+  'CP': { name: 'CP (코퍼)', rgb: [165, 95, 65] },
+  'VP': { name: 'VP (바이올렛핑크)', rgb: [180, 125, 155] },
+  'RP': { name: 'RP (레드핑크)', rgb: [195, 115, 140] },
+  'PN': { name: 'PN (핑크)', rgb: [215, 155, 175] },
+  'AP': { name: 'AP (애쉬핑크)', rgb: [185, 165, 170] },
+  'MB': { name: 'MB (마젠타브라운)', rgb: [125, 85, 95] }
 };
+
+// 전문가 분석 개선 - 빛 반사/조명 변화 고려한 헤어컬러 판별
+function analyzeProfessionally(extractedColors) {
+  console.log('🔬 빛 반사 고려 전문가 색상 분석 시작...', extractedColors);
+  
+  if (!extractedColors || extractedColors.length === 0) {
+    throw new Error('분석할 색상 데이터가 없습니다.');
+  }
+  
+  // 1단계: 조명 영향 보정 - 하이라이트와 섀도우 영역 분리
+  const colorAnalysis = extractedColors.map((color, index) => {
+    const brightness = (color[0] * 0.299 + color[1] * 0.587 + color[2] * 0.114);
+    const saturation = calculateSaturation(color[0], color[1], color[2]);
+    
+    // 조명 타입 분류
+    let lightingType = '';
+    if (brightness > 180) lightingType = 'highlight'; // 하이라이트 (빛 반사)
+    else if (brightness < 60) lightingType = 'shadow'; // 섀도우
+    else lightingType = 'midtone'; // 중간톤 (가장 정확)
+    
+    return {
+      rgb: color,
+      brightness,
+      saturation,
+      lightingType,
+      weight: lightingType === 'midtone' ? 5.0 : lightingType === 'shadow' ? 3.0 : 1.0
+    };
+  });
+  
+  console.log('조명 분석:', colorAnalysis.map(c => `${c.lightingType}(${Math.round(c.brightness)})`));
+  
+  // 2단계: 언더톤 분석 (빛 반사 보정)
+  const undertonAnalysis = analyzeUndertone(colorAnalysis);
+  
+  // 3단계: 조명 보정된 가중평균 계산
+  let totalWeight = 0;
+  let weightedR = 0, weightedG = 0, weightedB = 0;
+  
+  colorAnalysis.forEach(analysis => {
+    totalWeight += analysis.weight;
+    weightedR += analysis.rgb[0] * analysis.weight;
+    weightedG += analysis.rgb[1] * analysis.weight;
+    weightedB += analysis.rgb[2] * analysis.weight;
+  });
+  
+  const avgR = Math.round(weightedR / totalWeight);
+  const avgG = Math.round(weightedG / totalWeight);
+  const avgB = Math.round(weightedB / totalWeight);
+  
+  console.log(`✅ 조명 보정 평균 색상: RGB(${avgR}, ${avgG}, ${avgB})`);
+  
+  // 4단계: 실제 헤어컬러 예측 (조명 보정)
+  const correctedColor = correctForLighting(avgR, avgG, avgB, colorAnalysis);
+  
+  // 5단계: 전문가 수준 색상 분류
+  const professionalClassification = classifyHairColor(correctedColor, undertonAnalysis);
+  
+  // 6단계: 빛 반사 특성 분석
+  const reflectionAnalysis = analyzeReflectionCharacteristics(colorAnalysis);
+  
+  return {
+    averageColor: [avgR, avgG, avgB],
+    correctedColor: correctedColor,
+    realBrightness: Math.round((correctedColor[0] * 0.299 + correctedColor[1] * 0.587 + correctedColor[2] * 0.114)),
+    level: professionalClassification.level,
+    baseNeed: professionalClassification.baseNeed,
+    toneFamily: professionalClassification.toneFamily,
+    undertone: undertonAnalysis,
+    intensity: professionalClassification.intensity,
+    saturationValue: Math.round(calculateSaturation(...correctedColor) * 100),
+    lightingCondition: reflectionAnalysis.condition,
+    reflectionType: reflectionAnalysis.type,
+    colorStability: reflectionAnalysis.stability,
+    professionalNotes: generateProfessionalNotes(colorAnalysis, reflectionAnalysis),
+    confidence: calculateConfidence(colorAnalysis, reflectionAnalysis),
+    extractedCount: extractedColors.length,
+    warning: generateWarnings(professionalClassification, reflectionAnalysis)
+  };
+}
+
+// 언더톤 분석 (조명에 영향받지 않는 기본 색조)
+function analyzeUndertone(colorAnalysis) {
+  // 중간톤 색상들만 사용 (가장 정확)
+  const midtones = colorAnalysis.filter(c => c.lightingType === 'midtone');
+  if (midtones.length === 0) return '분석 불가';
+  
+  let totalR = 0, totalG = 0, totalB = 0;
+  midtones.forEach(c => {
+    totalR += c.rgb[0];
+    totalG += c.rgb[1]; 
+    totalB += c.rgb[2];
+  });
+  
+  const avgR = totalR / midtones.length;
+  const avgG = totalG / midtones.length;
+  const avgB = totalB / midtones.length;
+  
+  // 언더톤 분류 (전문가 기준)
+  const redDominance = avgR - Math.max(avgG, avgB);
+  const blueDominance = avgB - Math.max(avgR, avgG);
+  const greenDominance = avgG - Math.max(avgR, avgB);
+  
+  if (redDominance > 10) return '웜 언더톤 (골든/쿠퍼)';
+  else if (blueDominance > 10) return '쿨 언더톤 (애쉬/매트)';
+  else if (greenDominance > 8) return '올리브 언더톤';
+  else if (Math.abs(redDominance) < 5 && Math.abs(blueDominance) < 5) return '뉴트럴 언더톤';
+  else return '믹스 언더톤';
+}
+
+// 조명 보정 (하이라이트/섀도우 영향 제거)
+function correctForLighting(avgR, avgG, avgB, colorAnalysis) {
+  const highlights = colorAnalysis.filter(c => c.lightingType === 'highlight');
+  const shadows = colorAnalysis.filter(c => c.lightingType === 'shadow');
+  const midtones = colorAnalysis.filter(c => c.lightingType === 'midtone');
+  
+  // 조명 상황 판별
+  if (highlights.length > shadows.length * 2) {
+    // 강한 조명 - 하이라이트가 많음
+    console.log('🔆 강한 조명 감지 - 색상 어둡게 보정');
+    return [
+      Math.max(20, avgR - 15),
+      Math.max(20, avgG - 15), 
+      Math.max(20, avgB - 15)
+    ];
+  } else if (shadows.length > highlights.length * 2) {
+    // 어두운 조명 - 섀도우가 많음
+    console.log('🌙 어두운 조명 감지 - 색상 밝게 보정');
+    return [
+      Math.min(235, avgR + 20),
+      Math.min(235, avgG + 20),
+      Math.min(235, avgB + 20)
+    ];
+  } else {
+    // 자연광/균일한 조명
+    console.log('☀️ 자연광 감지 - 최소 보정');
+    return [avgR, avgG, avgB];
+  }
+}
+
+// 전문가 수준 헤어컬러 분류
+function classifyHairColor(correctedColor, undertone) {
+  const [r, g, b] = correctedColor;
+  const brightness = r * 0.299 + g * 0.587 + b * 0.114;
+  
+  // 레벨 분류 (더 정확한 기준)
+  let level = '';
+  let baseNeed = '';
+  
+  if (brightness <= 20) {
+    level = '1레벨'; baseNeed = '천연 흑발 (강력 탈색 필수)';
+  } else if (brightness <= 35) {
+    level = '2레벨'; baseNeed = '다크 블랙브라운 (탈색 필수)';
+  } else if (brightness <= 50) {
+    level = '3레벨'; baseNeed = '다크브라운 (탈색 권장)';
+  } else if (brightness <= 70) {
+    level = '4-5레벨'; baseNeed = '미디엄브라운 (염색 가능)';
+  } else if (brightness <= 90) {
+    level = '6레벨'; baseNeed = '라이트브라운 (쉬운 시술)';
+  } else if (brightness <= 120) {
+    level = '7-8레벨'; baseNeed = '다크블론드 (직접 염색)';
+  } else if (brightness <= 150) {
+    level = '9레벨'; baseNeed = '미디엄블론드 (토닝 가능)';
+  } else {
+    level = '10+레벨'; baseNeed = '라이트블론드/블리치베이스';
+  }
+  
+  // 색상계열 + 언더톤 조합
+  let toneFamily = undertone;
+  if (undertone.includes('웜')) {
+    if (r > g && r > b) toneFamily = '웜톤 골든계열';
+    else if (r > b) toneFamily = '웜톤 쿠퍼계열';
+    else toneFamily = '웜톤 카라멜계열';
+  } else if (undertone.includes('쿨')) {
+    if (b > r) toneFamily = '쿨톤 애쉬계열';
+    else if (g > r) toneFamily = '쿨톤 매트계열';
+    else toneFamily = '쿨톤 베이지계열';
+  }
+  
+  // 채도 분석
+  const saturation = calculateSaturation(r, g, b);
+  let intensity = '';
+  if (saturation < 0.1) intensity = '무채색 (애쉬)';
+  else if (saturation < 0.25) intensity = '저채도 (내추럴)';
+  else if (saturation < 0.5) intensity = '중채도 (소프트)';
+  else intensity = '고채도 (비비드)';
+  
+  return { level, baseNeed, toneFamily, intensity };
+}
+
+// 빛 반사 특성 분석
+function analyzeReflectionCharacteristics(colorAnalysis) {
+  const brightnessRange = Math.max(...colorAnalysis.map(c => c.brightness)) - 
+                         Math.min(...colorAnalysis.map(c => c.brightness));
+  
+  let condition = '';
+  let type = '';
+  let stability = '';
+  
+  if (brightnessRange > 100) {
+    condition = '강한 대비 조명';
+    type = '반사율 높음 (건강한 모발)';
+    stability = '조명에 따라 크게 변함';
+  } else if (brightnessRange > 50) {
+    condition = '일반 실내조명';
+    type = '보통 반사율';
+    stability = '조명에 따라 약간 변함';
+  } else {
+    condition = '균일한 조명';
+    type = '낮은 반사율 (손상 모발 가능성)';
+    stability = '조명 변화에 안정적';
+  }
+  
+  return { condition, type, stability };
+}
+
+// 전문가 노트 생성
+function generateProfessionalNotes(colorAnalysis, reflectionAnalysis) {
+  const midtoneCount = colorAnalysis.filter(c => c.lightingType === 'midtone').length;
+  const highlightCount = colorAnalysis.filter(c => c.lightingType === 'highlight').length;
+  
+  let notes = [];
+  
+  if (reflectionAnalysis.condition === '강한 대비 조명') {
+    notes.push('사진이 강한 조명에서 촬영됨 - 실제 색상은 더 어둘 수 있음');
+  }
+  
+  if (midtoneCount < 2) {
+    notes.push('중간톤 색상 부족 - 더 균일한 조명에서 재촬영 권장');
+  }
+  
+  if (highlightCount > midtoneCount) {
+    notes.push('하이라이트 과다 - 실제 시술 시 더 어두운 결과 예상');
+  }
+  
+  notes.push(`분석된 조명 타입: ${reflectionAnalysis.condition}`);
+  
+  return notes.join(' / ');
+}
+
+// 신뢰도 계산 (조명 조건 고려)
+function calculateConfidence(colorAnalysis, reflectionAnalysis) {
+  const midtoneCount = colorAnalysis.filter(c => c.lightingType === 'midtone').length;
+  const totalCount = colorAnalysis.length;
+  
+  let confidence = '보통';
+  
+  if (midtoneCount >= 3 && reflectionAnalysis.stability === '조명 변화에 안정적') {
+    confidence = '높음';
+  } else if (midtoneCount < 1 || reflectionAnalysis.condition === '강한 대비 조명') {
+    confidence = '낮음';
+  }
+  
+  return confidence;
+}
+
+// 경고 메시지 생성
+function generateWarnings(classification, reflectionAnalysis) {
+  let warnings = [];
+  
+  if (reflectionAnalysis.condition === '강한 대비 조명') {
+    warnings.push('⚠️ 강한 조명으로 색상 왜곡 가능성 - 자연광에서 재확인 필요');
+  }
+  
+  if (classification.level.includes('1') || classification.level.includes('2')) {
+    warnings.push('⚠️ 매우 어두운 베이스 - 희망 색상 구현 시 강력 탈색 필요');
+  }
+  
+  if (reflectionAnalysis.type.includes('손상')) {
+    warnings.push('⚠️ 모발 손상 징후 감지 - 시술 전 모발 케어 필요');
+  }
+  
+  return warnings.join(' ');
+}
+
+// 채도 계산 헬퍼 함수
+function calculateSaturation(r, g, b) {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  return max === 0 ? 0 : (max - min) / max;
+}
 
 // RGB 거리 계산
 function colorDistance(rgb1, rgb2) {
@@ -1352,61 +1643,7 @@ function colorDistance(rgb1, rgb2) {
   );
 }
 
-// 이미지에서 머리색상만 추출 (배경색 제거)
-function extractHairColors(canvas, ctx) {
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imageData.data;
-  const hairPixels = [];
-  
-  // 피부톤 범위 (제외할 색상들)
-  const skinTones = [
-    {min: [200, 150, 120], max: [255, 220, 200]}, // 밝은 피부
-    {min: [150, 100, 70], max: [200, 150, 120]},   // 중간 피부  
-    {min: [80, 50, 30], max: [150, 100, 70]},      // 어두운 피부
-    {min: [240, 240, 240], max: [255, 255, 255]},  // 흰색 배경
-    {min: [0, 0, 0], max: [20, 20, 20]}            // 검은색 배경
-  ];
-  
-  // 픽셀 분석 (10픽셀마다 샘플링으로 성능 개선)
-  for (let i = 0; i < data.length; i += 4 * 10) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    const a = data[i + 3];
-    
-    if (a < 200) continue; // 투명 픽셀 제외
-    
-    // 피부톤/배경색 제외
-    let isSkinTone = false;
-    for (const tone of skinTones) {
-      if (r >= tone.min[0] && r <= tone.max[0] &&
-          g >= tone.min[1] && g <= tone.max[1] &&
-          b >= tone.min[2] && b <= tone.max[2]) {
-        isSkinTone = true;
-        break;
-      }
-    }
-    
-    if (!isSkinTone) {
-      // HSV 변환으로 색상 분석 정확도 향상
-      const hsv = rgbToHsv(r, g, b);
-      
-      // 머리색상 범위 필터링 (채도와 명도 기준)
-      if (hsv.s > 0.05 || hsv.v < 0.95) { // 너무 회색이거나 너무 밝지 않은 색상
-        hairPixels.push({r, g, b, h: hsv.h, s: hsv.s, v: hsv.v});
-      }
-    }
-  }
-  
-  if (hairPixels.length < 100) {
-    throw new Error('머리색상을 충분히 감지할 수 없어요. 머리 부분이 더 잘 보이는 사진을 업로드해주세요.');
-  }
-  
-  // 색상 클러스터링 (유사한 색상들 그룹화)
-  return clusterHairColors(hairPixels);
-}
-
-// RGB → HSV 변환
+// RGB → HSV 변환 (색상 분석용)
 function rgbToHsv(r, g, b) {
   r /= 255; g /= 255; b /= 255;
   const max = Math.max(r, g, b);
@@ -1428,31 +1665,125 @@ function rgbToHsv(r, g, b) {
   return {h, s, v};
 }
 
-// 머리색상 클러스터링 (유사 색상 그룹화)
-function clusterHairColors(hairPixels) {
-  const clusters = [];
-  const clusterThreshold = 30; // 색상 거리 임계값
+// 나노바나나 수준: 머리색상만 정밀 추출 (배경색 완전 제거)
+function extractHairColors(canvas, ctx) {
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  const hairPixels = [];
   
+  // 1단계: 고급 피부톤 및 배경 색상 범위 정의
+  const excludeRanges = [
+    // 밝은 피부톤 (백인/동양인 밝은 톤)
+    {rMin: 200, rMax: 255, gMin: 170, gMax: 230, bMin: 140, bMax: 200},
+    {rMin: 220, rMax: 255, gMin: 190, gMax: 240, bMin: 160, bMax: 210},
+    
+    // 중간 피부톤 (일반적인 동양인/중동)  
+    {rMin: 150, rMax: 210, gMin: 120, gMax: 180, bMin: 90, bMax: 150},
+    {rMin: 170, rMax: 220, gMin: 140, gMax: 190, bMin: 110, bMax: 160},
+    
+    // 어두운 피부톤 (남아시아/아프리카)
+    {rMin: 80, rMax: 160, gMin: 60, gMax: 130, bMin: 40, bMax: 100},
+    {rMin: 100, rMax: 180, gMin: 80, gMax: 140, bMin: 50, bMax: 110},
+    
+    // 배경색 범위 (흰색/회색/검은색)
+    {rMin: 240, rMax: 255, gMin: 240, gMax: 255, bMin: 240, bMax: 255}, // 흰색 배경
+    {rMin: 200, rMax: 240, gMin: 200, gMax: 240, bMin: 200, bMax: 240}, // 밝은 회색
+    {rMin: 100, rMax: 150, gMin: 100, gMax: 150, bMin: 100, bMax: 150}, // 중간 회색
+    {rMin: 0, rMax: 50, gMin: 0, gMax: 50, bMin: 0, bMax: 50},         // 어두운 배경
+    
+    // 의류 색상 (일반적인 옷 색상들)
+    {rMin: 0, rMax: 50, gMin: 0, gMax: 100, bMin: 100, bMax: 200},     // 네이비/청색 의류
+    {rMin: 0, rMax: 50, gMin: 0, gMax: 50, bMin: 0, bMax: 50},         // 검은색 의류
+    {rMin: 200, rMax: 255, gMin: 200, gMax: 255, bMin: 200, bMax: 255} // 흰색 의류
+  ];
+  
+  // 2단계: 픽셀별 분석 (고밀도 샘플링)
+  for (let i = 0; i < data.length; i += 4 * 5) { // 5픽셀마다 (높은 정밀도)
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+    
+    if (a < 200) continue; // 투명 픽셀 제외
+    
+    // 피부톤/배경색 제외 검사
+    let isSkinOrBackground = false;
+    for (const range of excludeRanges) {
+      if (r >= range.rMin && r <= range.rMax &&
+          g >= range.gMin && g <= range.gMax &&
+          b >= range.bMin && b <= range.bMax) {
+        isSkinOrBackground = true;
+        break;
+      }
+    }
+    
+    if (!isSkinOrBackground) {
+      // 3단계: HSV 변환으로 머리색상 특성 확인
+      const hsv = rgbToHsv(r, g, b);
+      
+      // 머리색상 특성 필터링
+      const isValidHairColor = (
+        // 채도가 너무 높지 않음 (형광색 제외)
+        hsv.s <= 0.9 &&
+        // 명도가 극단적이지 않음
+        hsv.v >= 0.05 && hsv.v <= 0.95 &&
+        // 색조가 머리색상 범위 내 (모든 범위 허용, 특별한 컬러 포함)
+        (hsv.h >= 0 && hsv.h <= 360)
+      );
+      
+      if (isValidHairColor) {
+        hairPixels.push({
+          r, g, b, 
+          h: hsv.h, 
+          s: hsv.s, 
+          v: hsv.v,
+          // 픽셀 위치 정보 (클러스터링용)
+          x: Math.floor((i / 4) % canvas.width),
+          y: Math.floor((i / 4) / canvas.width)
+        });
+      }
+    }
+  }
+  
+  if (hairPixels.length < 200) {
+    throw new Error('🚫 머리색상을 충분히 감지할 수 없어요.\n\n✅ 다음을 확인해주세요:\n• 머리 부분이 선명하게 보이는 사진\n• 조명이 밝고 균일한 사진\n• 배경이 단순한 사진\n• 얼굴보다 머리가 더 많이 보이는 사진');
+  }
+  
+  // 4단계: 나노바나나 수준 색상 클러스터링
+  return advancedHairColorClustering(hairPixels);
+}
+
+// 고급 머리색상 클러스터링 (나노바나나 기법)
+function advancedHairColorClustering(hairPixels) {
+  console.log(`🔬 머리색상 픽셀 ${hairPixels.length}개 분석 중...`);
+  
+  const clusters = [];
+  const clusterThreshold = 25; // RGB 유사도 기준
+  const minClusterSize = 50;   // 최소 클러스터 크기
+  
+  // K-means 스타일 클러스터링
   hairPixels.forEach(pixel => {
     let addedToCluster = false;
     
     // 기존 클러스터와 비교
     for (const cluster of clusters) {
-      const distance = colorDistance([pixel.r, pixel.g, pixel.b], 
-                                   [cluster.avgR, cluster.avgG, cluster.avgB]);
+      const distance = colorDistance(
+        [pixel.r, pixel.g, pixel.b], 
+        [cluster.centroidR, cluster.centroidG, cluster.centroidB]
+      );
       
       if (distance < clusterThreshold) {
         // 기존 클러스터에 추가
         cluster.pixels.push(pixel);
         cluster.count++;
         
-        // 평균 색상 업데이트
+        // 중심점 업데이트 (가중평균)
         cluster.totalR += pixel.r;
         cluster.totalG += pixel.g;
         cluster.totalB += pixel.b;
-        cluster.avgR = Math.round(cluster.totalR / cluster.count);
-        cluster.avgG = Math.round(cluster.totalG / cluster.count);
-        cluster.avgB = Math.round(cluster.totalB / cluster.count);
+        cluster.centroidR = cluster.totalR / cluster.count;
+        cluster.centroidG = cluster.totalG / cluster.count;
+        cluster.centroidB = cluster.totalB / cluster.count;
         
         addedToCluster = true;
         break;
@@ -1465,15 +1796,39 @@ function clusterHairColors(hairPixels) {
         pixels: [pixel],
         count: 1,
         totalR: pixel.r, totalG: pixel.g, totalB: pixel.b,
-        avgR: pixel.r, avgG: pixel.g, avgB: pixel.b
+        centroidR: pixel.r, centroidG: pixel.g, centroidB: pixel.b
       });
     }
   });
   
-  // 픽셀 수가 많은 상위 3개 클러스터만 선택
-  clusters.sort((a, b) => b.count - a.count);
+  // 5단계: 클러스터 필터링 및 정제
+  const validClusters = clusters
+    .filter(cluster => cluster.count >= minClusterSize) // 최소 크기 이상
+    .sort((a, b) => b.count - a.count)                  // 픽셀 수 내림차순
+    .slice(0, 5);                                       // 상위 5개만
   
-  return clusters.slice(0, 3).map(cluster => [cluster.avgR, cluster.avgG, cluster.avgB]);
+  if (validClusters.length === 0) {
+    throw new Error('🚫 유효한 머리색상 클러스터를 찾을 수 없어요.\n\n📸 더 선명한 머리 사진을 업로드해주세요.');
+  }
+  
+  // 6단계: 각 클러스터의 대표 색상 계산
+  const representativeColors = validClusters.map(cluster => {
+    // 클러스터 내 색상들의 중앙값 계산 (노이즈 제거)
+    const sortedR = cluster.pixels.map(p => p.r).sort((a,b) => a-b);
+    const sortedG = cluster.pixels.map(p => p.g).sort((a,b) => a-b);
+    const sortedB = cluster.pixels.map(p => p.b).sort((a,b) => a-b);
+    
+    const medianR = sortedR[Math.floor(sortedR.length / 2)];
+    const medianG = sortedG[Math.floor(sortedG.length / 2)];
+    const medianB = sortedB[Math.floor(sortedB.length / 2)];
+    
+    console.log(`🎨 클러스터 ${cluster.count}픽셀: RGB(${medianR}, ${medianG}, ${medianB})`);
+    
+    return [Math.round(medianR), Math.round(medianG), Math.round(medianB)];
+  });
+  
+  console.log(`✅ 총 ${representativeColors.length}개 대표 색상 추출 완료`);
+  return representativeColors;
 }
 
 // 색상 분석 메인 함수
@@ -1546,17 +1901,19 @@ function displayColorResults(matches, professionalAnalysis) {
   
   container.innerHTML = '';
   
-  // 전문가 분석 - 평균 색상 표시
+  // 전문가 분석 - 평균 색상 표시 (나노바나나 수준)
   const avgColorBox = document.createElement('div');
   avgColorBox.style.cssText = `
-    width: 80px; height: 80px; border-radius: 8px; margin-right: 10px;
-    background: rgb(${professionalAnalysis.averageColor.join(',')});
+    width: 90px; height: 80px; border-radius: 8px; margin-right: 12px;
+    background: linear-gradient(135deg, rgb(${professionalAnalysis.averageColor.join(',')}), rgb(${professionalAnalysis.averageColor.map(c => Math.max(0, c-20)).join(',')}));
     border: 3px solid #1a73e8; position: relative; flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(26,115,232,0.3);
   `;
   const avgLabel = document.createElement('div');
   avgLabel.style.cssText = `
-    position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
+    position: absolute; bottom: -24px; left: 50%; transform: translateX(-50%);
     font-size: 11px; font-weight: 700; color: #1a73e8; white-space: nowrap;
+    background: white; padding: 2px 6px; border-radius: 4px; border: 1px solid #1a73e8;
   `;
   avgLabel.textContent = '평균색상';
   avgColorBox.appendChild(avgLabel);
@@ -1592,45 +1949,93 @@ function displayColorResults(matches, professionalAnalysis) {
   const accuracy = Math.max(0, 100 - Math.round(topMatch.distance / 4.4));
   
   infoContainer.innerHTML = `
-    <!-- 추천 색상 -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #eee;">
-      <strong style="color: #1a73e8; font-size: 16px;">🎯 추천 색상: ${topMatch.code} (${topMatch.name})</strong>
-      <span style="color: #34a853; font-weight: 600; font-size: 14px;">${accuracy}% 일치</span>
+    <!-- 추천 색상 (신중한 표현으로 변경) -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 12px; background: #f0f8ff; border-radius: 8px; border-left: 4px solid #1a73e8;">
+      <div style="flex: 1;">
+        <div style="font-size: 16px; font-weight: 600; color: #1a73e8; margin-bottom: 4px;">🔍 참고 색상: ${topMatch.code} (${topMatch.name})</div>
+        <div style="font-size: 12px; color: #666;">이미지 분석 기반 유사 색상 (실제 시술 결과와 다를 수 있음)</div>
+      </div>
+      <span style="color: #34a853; font-weight: 600; font-size: 14px; background: #e8f5e8; padding: 4px 8px; border-radius: 12px;">${accuracy}% 매칭</span>
     </div>
     
-    <!-- 전문가 색상 분석 -->
+    <!-- 분석 신뢰도 경고 -->
+    <div style="background: #fff8e1; padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #ffa726;">
+      <div style="font-size: 13px; font-weight: 600; color: #ef6c00; margin-bottom: 4px;">⚠️ 분석 신뢰도: ${professionalAnalysis.confidence}</div>
+      <div style="font-size: 11px; color: #bf6000; line-height: 1.4;">
+        • 모니터/조명/사진품질에 따라 색상이 달라질 수 있습니다<br>
+        • 실제 모발 상태, 이전 시술 이력을 고려하지 않은 분석입니다<br>
+        • 최종 색상 결정은 반드시 전문가 상담 후 진행하세요
+      </div>
+    </div>
+    
+    <!-- 이미지 기반 색상 정보 + 조명 분석 -->
     <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-      <h4 style="margin: 0 0 8px 0; color: #1a73e8; font-size: 13px;">👨‍🎨 전문가 색상 분석</h4>
-      <div style="font-size: 12px; line-height: 1.4; color: #555;">
-        <div><strong>색조:</strong> ${professionalAnalysis.colorFamily}</div>
-        <div><strong>명도:</strong> ${professionalAnalysis.brightness}</div>
-        <div><strong>채도:</strong> ${professionalAnalysis.saturation}</div>
-        <div><strong>레벨:</strong> ${professionalAnalysis.level}</div>
-        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #ddd;">
-          <div><strong>시술 난이도:</strong> <span style="color: ${professionalAnalysis.difficulty === '고난이도' ? '#ea4335' : '#ff9800'}">${professionalAnalysis.difficulty}</span></div>
-          <div style="margin-top: 4px;"><strong>💡 추천:</strong> ${professionalAnalysis.recommendation}</div>
+      <h4 style="margin: 0 0 8px 0; color: #1a73e8; font-size: 14px;">📊 전문가 색상 분석 (조명 보정)</h4>
+      <div style="font-size: 12px; line-height: 1.5; color: #555;">
+        <div style="margin-bottom: 4px;"><strong>• 분석 레벨:</strong> ${professionalAnalysis.level} (보정 밝기: ${professionalAnalysis.realBrightness})</div>
+        <div style="margin-bottom: 4px;"><strong>• 베이스 상태:</strong> ${professionalAnalysis.baseNeed}</div>
+        <div style="margin-bottom: 4px;"><strong>• 언더톤:</strong> ${professionalAnalysis.undertone || professionalAnalysis.toneFamily}</div>
+        <div style="margin-bottom: 4px;"><strong>• 채도 특성:</strong> ${professionalAnalysis.intensity} (${professionalAnalysis.saturationValue}%)</div>
+        <div style="margin-bottom: 6px; padding-top: 6px; border-top: 1px solid #ddd;">
+          <strong>🔆 조명 분석:</strong> ${professionalAnalysis.lightingCondition || '일반 조명'}
+        </div>
+        <div style="margin-bottom: 4px;"><strong>✨ 반사 특성:</strong> ${professionalAnalysis.reflectionType || '보통 반사율'}</div>
+        <div style="margin-bottom: 4px;"><strong>🎨 색상 안정성:</strong> ${professionalAnalysis.colorStability || '안정적'}</div>
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd; color: #999; font-size: 11px;">
+          ※ 빛 반사/조명 변화를 고려한 전문가 수준 분석
         </div>
       </div>
     </div>
     
-    <!-- 기술 정보 -->
-    <div style="font-size: 12px; color: #666; margin-bottom: 12px;">
-      <div style="background: #fff; padding: 8px; border-radius: 4px; border: 1px solid #eee;">
-        <div><strong>평균 RGB:</strong> rgb(${professionalAnalysis.averageColor.join(', ')})</div>
-        <div><strong>HSV:</strong> H${Math.round(professionalAnalysis.hsv.h)}° S${Math.round(professionalAnalysis.hsv.s*100)}% V${Math.round(professionalAnalysis.hsv.v*100)}%</div>
-        ${matches.length > 1 ? `<div style="margin-top: 4px;"><strong>대안 색상:</strong> ${matches.slice(1).map(m => m.code).join(', ')}</div>` : ''}
+    <!-- 전문가 상담 권장 + 조명 노트 -->
+    <div style="background: #fff3e0; padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #ff9800;">
+      <h4 style="margin: 0 0 6px 0; color: #f57c00; font-size: 13px;">👨‍🎨 전문가 상담 필수 사항</h4>
+      <div style="font-size: 11px; line-height: 1.4; color: #e65100;">
+        <div style="margin-bottom: 3px;">✓ 현재 모발 상태 및 손상도 진단</div>
+        <div style="margin-bottom: 3px;">✓ 이전 시술 이력 (염색/펌/매직 등) 확인</div>
+        <div style="margin-bottom: 3px;">✓ 모발 타입 및 자연 색소 분석</div>
+        <div style="margin-bottom: 3px;">✓ 희망 색상 구현 가능성 검토</div>
+        <div style="margin-bottom: 3px;">✓ 다양한 조명에서 색상 변화 확인</div>
+        ${professionalAnalysis.professionalNotes ? `
+        <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #ffcc80; background: #fff8e1; padding: 6px; border-radius: 4px;">
+          <div style="font-weight: 600; margin-bottom: 3px;">📝 분석 노트:</div>
+          <div style="font-size: 10px;">${professionalAnalysis.professionalNotes}</div>
+        </div>
+        ` : ''}
+        <div style="color: #d84315; font-weight: 600; margin-top: 6px;">
+          ※ 이 분석은 참고용이며, 정확한 시술 계획은 전문가와 상담 후 수립하시기 바랍니다
+        </div>
       </div>
     </div>
     
-    <!-- 액션 버튼 -->
+    <!-- 참고용 기술 데이터 -->
+    <details style="margin-bottom: 12px;">
+      <summary style="font-size: 12px; color: #666; cursor: pointer; padding: 4px 0;">🔬 기술 분석 데이터 (참고용)</summary>
+      <div style="font-size: 11px; color: #666; margin-top: 8px; padding: 8px; background: #f9f9f9; border-radius: 4px;">
+        <div><strong>원본 평균 RGB:</strong> rgb(${professionalAnalysis.averageColor.join(', ')})</div>
+        ${professionalAnalysis.correctedColor ? `<div><strong>조명 보정 RGB:</strong> rgb(${professionalAnalysis.correctedColor.join(', ')})</div>` : ''}
+        <div><strong>보정 밝기 값:</strong> ${professionalAnalysis.realBrightness} (인간 시각 가중치 적용)</div>
+        <div><strong>채도 정밀도:</strong> ${professionalAnalysis.saturationValue}%</div>
+        <div><strong>분석 신뢰도:</strong> ${professionalAnalysis.confidence} (조명 조건 고려)</div>
+        <div><strong>추출 색상 수:</strong> ${professionalAnalysis.extractedCount}개 클러스터</div>
+        ${matches.length > 1 ? `<div><strong>유사 색상:</strong> ${matches.slice(1).map(m => m.code).join(', ')}</div>` : ''}
+        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #ddd; font-size: 10px; color: #999; line-height: 1.3;">
+          ※ RGB 값은 디스플레이 환경에 따라 다르게 보일 수 있으며, 실제 헤어 컬러와는 차이가 있을 수 있습니다.<br>
+          ※ 이 분석은 이미지 기반 색상 정보 제공 목적이며, 시술 가이드가 아닙니다.
+        </div>
+      </div>
+    </details>
+    
+    <!-- 고객 상담용 가이드 생성 -->
     <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
       <button onclick="generateAllExamples([${matches.map(m => `{code:'${m.code}',name:'${m.name}',rgb:[${m.rgb.join(',')}]}`).join(',')}])" style="
         width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; 
         border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
         display: flex; align-items: center; justify-content: center; gap: 6px;
-      ">📸 고객 전송용 색상 가이드 생성</button>
-      <div style="font-size: 11px; color: #999; text-align: center; margin-top: 6px;">
-        색상을 클릭하거나 위 버튼을 눌러 전문적인 색상 가이드를 생성하세요
+      ">📋 상담용 색상 참고 자료 생성</button>
+      <div style="font-size: 11px; color: #999; text-align: center; margin-top: 8px; line-height: 1.3;">
+        💡 생성되는 자료는 고객과의 색상 커뮤니케이션을 위한 <strong>참고 목적</strong>이며<br>
+        실제 시술은 전문가의 모발 진단과 상담을 통해 결정됩니다
       </div>
     </div>
   `;
@@ -1715,7 +2120,7 @@ function generateExampleImage(colorMatches) {
   ctx.textAlign = 'center';
   ctx.fillText('✂️ 더에이치헤어 색상 가이드', canvas.width / 2, 45);
   ctx.font = '18px -apple-system, sans-serif';
-  ctx.fillText('고객님의 희망 색상을 찾아드렸어요!', canvas.width / 2, 80);
+  ctx.fillText('색상 참고 자료 (전문가 상담 필수)', canvas.width / 2, 80);
   
   // 메인 색상 표시
   let yPos = 160;
@@ -1748,35 +2153,57 @@ function generateExampleImage(colorMatches) {
   
   yPos += 50;
   
-  // 전문가 분석 정보 (컬러매칭에 성공한 경우에만 표시)
+  // 전문가 분석 정보 (조명 보정 포함)
   if (window.lastProfessionalAnalysis) {
     const analysis = window.lastProfessionalAnalysis;
     
-    ctx.fillStyle = '#666';
-    ctx.font = 'bold 20px -apple-system, sans-serif';
-    ctx.fillText('📋 전문가 분석', canvas.width / 2, yPos);
+    ctx.fillStyle = '#1a73e8';
+    ctx.font = 'bold 22px -apple-system, sans-serif';
+    ctx.fillText('📋 전문가 분석 (조명 보정)', canvas.width / 2, yPos);
+    yPos += 40;
+    
+    ctx.font = '18px -apple-system, sans-serif';
+    ctx.textAlign = 'left';
+    const leftMargin = 60;
+    
+    // 좌측 컬럼 - 기본 정보
+    ctx.fillStyle = '#333';
+    ctx.fillText(`🎨 레벨: ${analysis.level}`, leftMargin, yPos);
+    yPos += 30;
+    ctx.fillText(`🎯 베이스: ${analysis.baseNeed.split(' ')[0]}${analysis.baseNeed.split(' ')[1]}`, leftMargin, yPos);
+    yPos += 30;
+    ctx.fillText(`💫 언더톤: ${(analysis.undertone || analysis.toneFamily).split(' ')[0]}`, leftMargin, yPos);
+    yPos += 30;
+    ctx.fillText(`✨ 강도: ${analysis.intensity}`, leftMargin, yPos);
     yPos += 35;
     
-    ctx.font = '16px -apple-system, sans-serif';
-    ctx.textAlign = 'left';
-    const leftMargin = 80;
+    // 조명 분석 정보
+    if (analysis.lightingCondition) {
+      ctx.fillStyle = '#f57c00';
+      ctx.font = 'bold 18px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🔆 조명 분석', canvas.width / 2, yPos);
+      yPos += 30;
+      
+      ctx.fillStyle = '#555';
+      ctx.font = '16px -apple-system, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`조명 상태: ${analysis.lightingCondition}`, leftMargin, yPos);
+      yPos += 25;
+      ctx.fillText(`반사 특성: ${analysis.reflectionType || '보통'}`, leftMargin, yPos);
+      yPos += 25;
+      ctx.fillText(`색상 안정성: ${analysis.colorStability || '안정적'}`, leftMargin, yPos);
+      yPos += 35;
+    }
     
-    // 색조/명도/채도 정보
-    ctx.fillText(`색조: ${analysis.colorFamily}`, leftMargin, yPos);
-    yPos += 25;
-    ctx.fillText(`명도: ${analysis.brightness}`, leftMargin, yPos);
-    yPos += 25;
-    ctx.fillText(`채도: ${analysis.saturation}`, leftMargin, yPos);
-    yPos += 25;
-    ctx.fillText(`레벨: ${analysis.level}`, leftMargin, yPos);
-    yPos += 30;
-    
-    // 시술 난이도
-    ctx.fillStyle = analysis.difficulty === '고난이도' ? '#ea4335' : '#ff9800';
-    ctx.font = 'bold 18px -apple-system, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`💡 ${analysis.difficulty} 시술`, canvas.width / 2, yPos);
-    yPos += 50;
+    // 주의사항
+    if (analysis.warning) {
+      ctx.fillStyle = '#ea4335';
+      ctx.font = 'bold 16px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(analysis.warning.split(' - ')[0], canvas.width / 2, yPos);
+      yPos += 30;
+    }
   }
   
   ctx.textAlign = 'center';
@@ -1821,13 +2248,23 @@ function generateExampleImage(colorMatches) {
     yPos += altSize + 80;
   }
   
-  // 하단 정보
-  ctx.fillStyle = '#666';
-  ctx.font = '16px -apple-system, sans-serif';
+  // 하단 주의사항 (전문가 수준 안전장치)
+  ctx.fillStyle = '#ea4335';
+  ctx.font = 'bold 16px -apple-system, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('💡 상담 시 위 색상 코드를 말씀해주세요', canvas.width / 2, yPos);
+  ctx.fillText('⚠️ 참고용 색상 정보입니다', canvas.width / 2, yPos);
+  yPos += 25;
+  
+  ctx.fillStyle = '#666';
+  ctx.font = '14px -apple-system, sans-serif';
+  ctx.fillText('실제 시술 전 전문가 상담이 반드시 필요합니다', canvas.width / 2, yPos);
+  yPos += 20;
+  ctx.fillText('모발 상태, 이전 시술 이력에 따라 결과가 달라질 수 있습니다', canvas.width / 2, yPos);
   yPos += 30;
-  ctx.fillText('📞 문의: 더에이치헤어', canvas.width / 2, yPos);
+  
+  ctx.fillStyle = '#1a73e8';
+  ctx.font = 'bold 16px -apple-system, sans-serif';
+  ctx.fillText('📞 예약 상담: 더에이치헤어', canvas.width / 2, yPos);
   yPos += 30;
   
   const today = new Date();
@@ -1869,88 +2306,4 @@ function generateExampleImage(colorMatches) {
 }
 
 // ── 전문가 시점 색상 분석 ─────────────────────────────
-function analyzeProfessionally(extractedColors) {
-  // 전체 픽셀의 가중평균으로 대표 색상 계산
-  const totalPixels = extractedColors.reduce((sum, color, index) => {
-    // 첫 번째 색상은 가중치 3, 두 번째는 2, 세 번째는 1
-    return sum + (3 - index);
-  }, 0);
-  
-  let avgR = 0, avgG = 0, avgB = 0;
-  extractedColors.forEach((color, index) => {
-    const weight = (3 - index) / totalPixels;
-    avgR += color[0] * weight;
-    avgG += color[1] * weight;
-    avgB += color[2] * weight;
-  });
-  
-  avgR = Math.round(avgR);
-  avgG = Math.round(avgG);
-  avgB = Math.round(avgB);
-  
-  // HSV 변환으로 전문적 분석
-  const hsv = rgbToHsv(avgR, avgG, avgB);
-  
-  // 색조 분석 (Hue 기준)
-  let colorFamily;
-  if (hsv.h >= 0 && hsv.h < 30) colorFamily = '레드-오렌지 계열';
-  else if (hsv.h >= 30 && hsv.h < 60) colorFamily = '오렌지-옐로우 계열';
-  else if (hsv.h >= 60 && hsv.h < 90) colorFamily = '옐로우-그린 계열';
-  else if (hsv.h >= 90 && hsv.h < 150) colorFamily = '그린 계열';
-  else if (hsv.h >= 150 && hsv.h < 210) colorFamily = '그린-블루 계열';
-  else if (hsv.h >= 210 && hsv.h < 270) colorFamily = '블루-바이올렛 계열';
-  else if (hsv.h >= 270 && hsv.h < 330) colorFamily = '바이올렛-퍼플 계열';
-  else colorFamily = '퍼플-레드 계열';
-  
-  // 명도 분석 (Value/Brightness)
-  let brightness;
-  if (hsv.v < 0.3) brightness = '다크 (어두운 톤)';
-  else if (hsv.v < 0.6) brightness = '미디엄 (중간 톤)';
-  else if (hsv.v < 0.8) brightness = '라이트 (밝은 톤)';
-  else brightness = '베리 라이트 (매우 밝은 톤)';
-  
-  // 채도 분석 (Saturation)
-  let saturation;
-  if (hsv.s < 0.2) saturation = '애쉬 (무채색)';
-  else if (hsv.s < 0.4) saturation = '소프트 (저채도)';
-  else if (hsv.s < 0.7) saturation = '미디엄 (중채도)';
-  else saturation = '비비드 (고채도)';
-  
-  // 레벨 분석 (미용업계 표준)
-  let level;
-  if (hsv.v < 0.15) level = '1-2 레벨 (자연흑발)';
-  else if (hsv.v < 0.3) level = '3-4 레벨 (다크브라운)';
-  else if (hsv.v < 0.45) level = '5-6 레벨 (미디엄브라운)';
-  else if (hsv.v < 0.6) level = '7-8 레벨 (라이트브라운)';
-  else if (hsv.v < 0.75) level = '9-10 레벨 (베리라이트)';
-  else level = '11+ 레벨 (블리치 필요)';
-  
-  // 시술 난이도 및 추천사항
-  let difficulty = '';
-  let recommendation = '';
-  
-  if (hsv.v < 0.3 && hsv.s > 0.5) {
-    difficulty = '고난이도';
-    recommendation = '다크한 베이스에 고채도 컬러는 사전 탈색이 필요할 수 있어요';
-  } else if (hsv.v > 0.7 && hsv.s < 0.3) {
-    difficulty = '중간난이도';
-    recommendation = '밝은 베이스에 애쉬 톤은 비교적 쉽게 구현 가능해요';
-  } else if (hsv.s > 0.7) {
-    difficulty = '고난이도';
-    recommendation = '고채도 컬러는 전문적인 블리치 작업이 필요해요';
-  } else {
-    difficulty = '중간난이도';
-    recommendation = '일반적인 염색으로 구현 가능한 톤이에요';
-  }
-  
-  return {
-    averageColor: [avgR, avgG, avgB],
-    hsv: hsv,
-    colorFamily: colorFamily,
-    brightness: brightness,
-    saturation: saturation,
-    level: level,
-    difficulty: difficulty,
-    recommendation: recommendation
-  };
-}
+// (위에 analyzeProfessionally 함수로 통합됨)
