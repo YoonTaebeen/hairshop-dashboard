@@ -238,6 +238,7 @@ async function loadSchedule() {
     document.getElementById('schConfirmed').textContent = confirmed.length+'건';
 
     renderSchedule(bookings);
+    renderScheduleStats(bookings, from, to);
   } catch(e) {
     document.getElementById('scheduleList').innerHTML=`<div class="empty">오류: ${e.message}</div>`;
   }
@@ -864,4 +865,122 @@ async function saveQuickWalkin() {
     btn.textContent = '저장 실패'; btn.disabled = false;
     alert('저장 실패: '+e.message);
   }
+}
+
+// ── 스케줄 탭 하단 분석 차트 ───────────────────────────
+function renderScheduleStats(bookings, from, to) {
+  const el = document.getElementById('scheduleStats');
+  if (!el) return;
+
+  const active    = bookings.filter(b=>b.status!=='cancelled');
+  const cancelled = bookings.filter(b=>b.status==='cancelled');
+  const changed   = bookings.filter(b=>b.status==='changed');
+  const revenue   = active.reduce((s,b)=>s+(b.service_price||0),0);
+  const cancelRate= bookings.length ? Math.round(cancelled.length/bookings.length*100*10)/10 : 0;
+  const avgPrice  = active.length ? Math.round(revenue/active.length) : 0;
+
+  // 날짜별 매출
+  const dateMap={};
+  active.forEach(b=>{ dateMap[b.booking_date]=(dateMap[b.booking_date]||0)+(b.service_price||0); });
+  const dateKeys=Object.keys(dateMap).sort();
+
+  // 시술별 매출
+  const svcMap={};
+  active.forEach(b=>{ if(!svcMap[b.service_name]){svcMap[b.service_name]={count:0,revenue:0};} svcMap[b.service_name].count++; svcMap[b.service_name].revenue+=(b.service_price||0); });
+  const svcEntries=Object.entries(svcMap).sort((a,b)=>b[1].revenue-a[1].revenue).slice(0,8);
+  const svcColors=svcEntries.map((_,i)=>COLORS[i%COLORS.length]);
+
+  // 요일별 매출
+  const dayRevMap={0:0,1:0,2:0,3:0,4:0,5:0,6:0}, dayCntMap={0:0,1:0,2:0,3:0,4:0,5:0,6:0};
+  active.forEach(b=>{ const idx=(new Date(b.booking_date).getDay()+6)%7; dayRevMap[idx]+=(b.service_price||0); dayCntMap[idx]++; });
+
+  el.innerHTML = `
+    <!-- 요약 통계 -->
+    <div class="stat-grid" style="margin-top:14px">
+      <div class="stat-card"><div class="stat-label">총 매출</div><div class="stat-value green">${won(revenue)}</div><div class="stat-sub">원</div></div>
+      <div class="stat-card"><div class="stat-label">평균 객단가</div><div class="stat-value purple">${won(avgPrice)}</div><div class="stat-sub">원</div></div>
+      <div class="stat-card"><div class="stat-label">취소율</div><div class="stat-value red">${cancelRate}%</div><div class="stat-sub">취소 ${cancelled.length}건</div></div>
+      <div class="stat-card"><div class="stat-label">현장고객</div><div class="stat-value orange">${bookings.filter(b=>!b.booking_no).length}건</div></div>
+    </div>
+
+    <!-- 매출 추이 -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-title">📈 기간 매출 추이</div>
+      <div class="chart-wrap"><canvas id="schLineChart"></canvas></div>
+    </div>
+
+    <!-- 요일별 + 시술별 -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-title">📅 요일별 예약</div>
+      <div class="chart-wrap"><canvas id="schDayChart"></canvas></div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="card-title">✂️ 시술별 매출</div>
+      <div class="chart-wrap"><canvas id="schSvcChart"></canvas></div>
+      <div id="schSvcLegend" class="legend" style="margin-top:8px"></div>
+    </div>
+
+    <!-- 예약 vs 취소 도넛 -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-title">🔵 예약 현황 비율</div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div style="width:140px;height:140px;flex-shrink:0"><canvas id="schDonutChart"></canvas></div>
+        <div id="schDonutLegend" class="legend" style="flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+  `;
+
+  // 매출 추이 라인차트
+  destroyChart('schLineChart');
+  charts['schLineChart']=new Chart(document.getElementById('schLineChart'),{
+    type:'line',
+    data:{labels:dateKeys.map(d=>d.slice(5)),datasets:[{
+      label:'매출',data:dateKeys.map(k=>dateMap[k]),
+      borderColor:'#1a73e8',backgroundColor:'rgba(26,115,232,.1)',
+      fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#1a73e8'
+    }]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'}},x:{ticks:{maxTicksLimit:10},grid:{display:false}}},maintainAspectRatio:true}
+  });
+
+  // 요일별 바+라인 차트
+  destroyChart('schDayChart');
+  charts['schDayChart']=new Chart(document.getElementById('schDayChart'),{
+    type:'bar',
+    data:{labels:['월','화','수','목','금','토','일'],datasets:[
+      {label:'매출(원)',data:Object.values(dayRevMap),backgroundColor:'rgba(26,115,232,0.6)',borderRadius:6,yAxisID:'y'},
+      {label:'예약건',data:Object.values(dayCntMap),type:'line',borderColor:'#34a853',backgroundColor:'rgba(52,168,83,.1)',pointBackgroundColor:'#34a853',pointRadius:4,fill:true,tension:.4,yAxisID:'y1'}
+    ]},
+    options:{plugins:{legend:{position:'top',labels:{boxWidth:10,padding:10}}},scales:{y:{beginAtZero:true,position:'left',grid:{display:false}},y1:{beginAtZero:true,position:'right',grid:{display:false},ticks:{stepSize:1}}},maintainAspectRatio:true}
+  });
+
+  // 시술별 가로 바차트
+  destroyChart('schSvcChart');
+  charts['schSvcChart']=new Chart(document.getElementById('schSvcChart'),{
+    type:'bar',
+    data:{labels:svcEntries.map(([k])=>k.length>10?k.slice(0,10)+'…':k),datasets:[
+      {label:'매출',data:svcEntries.map(([,v])=>v.revenue),backgroundColor:svcColors,borderRadius:4},
+      {label:'건수',data:svcEntries.map(([,v])=>v.count),type:'line',borderColor:'#fbbc04',pointBackgroundColor:'#fbbc04',pointRadius:4,fill:false,yAxisID:'y1'}
+    ]},
+    options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{display:false}},y1:{beginAtZero:true,position:'right',grid:{display:false},ticks:{stepSize:1}}},maintainAspectRatio:false,responsive:true}
+  });
+  document.getElementById('schSvcChart').style.height='220px';
+  makeLegend('schSvcLegend', svcEntries.map(([k])=>k), svcColors);
+
+  // 도넛차트
+  const confirmedCnt = active.filter(b=>b.status==='confirmed'||b.status==='completed').length;
+  const changedCnt   = changed.length;
+  destroyChart('schDonutChart');
+  charts['schDonutChart']=new Chart(document.getElementById('schDonutChart'),{
+    type:'doughnut',
+    data:{labels:['확정','취소','변경'],datasets:[{
+      data:[confirmedCnt, cancelled.length, changedCnt],
+      backgroundColor:['#1a73e8','#ea4335','#ff9800'],borderWidth:0,hoverOffset:4
+    }]},
+    options:{plugins:{legend:{display:false}},cutout:'70%',maintainAspectRatio:true}
+  });
+  makeLegend('schDonutLegend',
+    [`확정 ${confirmedCnt}건`, `취소 ${cancelled.length}건`, `변경 ${changedCnt}건`],
+    ['#1a73e8','#ea4335','#ff9800']
+  );
 }
