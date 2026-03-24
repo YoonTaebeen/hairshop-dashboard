@@ -867,7 +867,7 @@ async function saveQuickWalkin() {
   }
 }
 
-// ── 스케줄 탭 하단 분석 차트 ───────────────────────────
+// ── 스케줄 탭 하단 분석 차트 (강화버전) ───────────────────────────
 function renderScheduleStats(bookings, from, to) {
   const el = document.getElementById('scheduleStats');
   if (!el) return;
@@ -875,99 +875,169 @@ function renderScheduleStats(bookings, from, to) {
   const active    = bookings.filter(b=>b.status!=='cancelled');
   const cancelled = bookings.filter(b=>b.status==='cancelled');
   const changed   = bookings.filter(b=>b.status==='changed');
+  const walkin    = bookings.filter(b=>!b.booking_no);
+  const newCust   = bookings.filter(b=>b.is_new_customer);
   const revenue   = active.reduce((s,b)=>s+(b.service_price||0),0);
   const cancelRate= bookings.length ? Math.round(cancelled.length/bookings.length*100*10)/10 : 0;
   const avgPrice  = active.length ? Math.round(revenue/active.length) : 0;
 
-  // 날짜별 매출
-  const dateMap={};
-  active.forEach(b=>{ dateMap[b.booking_date]=(dateMap[b.booking_date]||0)+(b.service_price||0); });
+  // 날짜별 매출 + 건수
+  const dateMap={}, dateCntMap={};
+  active.forEach(b=>{ 
+    dateMap[b.booking_date]=(dateMap[b.booking_date]||0)+(b.service_price||0);
+    dateCntMap[b.booking_date]=(dateCntMap[b.booking_date]||0)+1;
+  });
   const dateKeys=Object.keys(dateMap).sort();
 
-  // 시술별 매출
+  // 시술별 매출 + 건수
   const svcMap={};
-  active.forEach(b=>{ if(!svcMap[b.service_name]){svcMap[b.service_name]={count:0,revenue:0};} svcMap[b.service_name].count++; svcMap[b.service_name].revenue+=(b.service_price||0); });
+  active.forEach(b=>{ 
+    if(!svcMap[b.service_name]){svcMap[b.service_name]={count:0,revenue:0};}
+    svcMap[b.service_name].count++; 
+    svcMap[b.service_name].revenue+=(b.service_price||0); 
+  });
   const svcEntries=Object.entries(svcMap).sort((a,b)=>b[1].revenue-a[1].revenue).slice(0,8);
   const svcColors=svcEntries.map((_,i)=>COLORS[i%COLORS.length]);
 
-  // 요일별 매출
+  // 요일별 매출 + 건수
   const dayRevMap={0:0,1:0,2:0,3:0,4:0,5:0,6:0}, dayCntMap={0:0,1:0,2:0,3:0,4:0,5:0,6:0};
-  active.forEach(b=>{ const idx=(new Date(b.booking_date).getDay()+6)%7; dayRevMap[idx]+=(b.service_price||0); dayCntMap[idx]++; });
+  active.forEach(b=>{ 
+    const idx=(new Date(b.booking_date).getDay()+6)%7; 
+    dayRevMap[idx]+=(b.service_price||0); 
+    dayCntMap[idx]++; 
+  });
+  const dayLabels=['월','화','수','목','금','토','일'];
+  const peakDay = dayLabels[Object.keys(dayCntMap).reduce((a,b)=>dayCntMap[a]>dayCntMap[b]?a:b)];
+
+  // 시간대별 분석 (booking_time 기준)
+  const timeMap = {9:0,10:0,11:0,12:0,13:0,14:0,15:0,16:0,17:0,18:0,19:0,20:0};
+  active.forEach(b=>{ 
+    if(b.booking_time) {
+      const hour = parseInt(b.booking_time.split(':')[0]); 
+      if(timeMap.hasOwnProperty(hour)) timeMap[hour]++;
+    }
+  });
+  const peakHour = Object.keys(timeMap).reduce((a,b)=>timeMap[a]>timeMap[b]?a:b);
+  const timeLabels = Object.keys(timeMap).map(h=>h+'시');
+
+  // 기간 일수 계산
+  const daysDiff = Math.ceil((new Date(to) - new Date(from)) / (1000*60*60*24)) + 1;
+  const avgDailyRev = Math.round(revenue / daysDiff);
 
   el.innerHTML = `
-    <!-- 요약 통계 -->
+    <!-- 핵심 요약 통계 -->
     <div class="stat-grid" style="margin-top:14px">
-      <div class="stat-card"><div class="stat-label">총 매출</div><div class="stat-value green">${won(revenue)}</div><div class="stat-sub">원</div></div>
+      <div class="stat-card"><div class="stat-label">총 매출</div><div class="stat-value green">${won(revenue)}</div><div class="stat-sub">${daysDiff}일간</div></div>
+      <div class="stat-card"><div class="stat-label">일평균 매출</div><div class="stat-value blue">${won(avgDailyRev)}</div><div class="stat-sub">원/일</div></div>
       <div class="stat-card"><div class="stat-label">평균 객단가</div><div class="stat-value purple">${won(avgPrice)}</div><div class="stat-sub">원</div></div>
-      <div class="stat-card"><div class="stat-label">취소율</div><div class="stat-value red">${cancelRate}%</div><div class="stat-sub">취소 ${cancelled.length}건</div></div>
-      <div class="stat-card"><div class="stat-label">현장고객</div><div class="stat-value orange">${bookings.filter(b=>!b.booking_no).length}건</div></div>
+      <div class="stat-card"><div class="stat-label">총 예약건</div><div class="stat-value orange">${active.length}건</div><div class="stat-sub">취소 ${cancelled.length}건</div></div>
     </div>
 
-    <!-- 매출 추이 -->
+    <div class="stat-grid" style="margin-top:8px">
+      <div class="stat-card"><div class="stat-label">현장고객</div><div class="stat-value cyan">${walkin.length}건</div><div class="stat-sub">${Math.round(walkin.length/bookings.length*100)}%</div></div>
+      <div class="stat-card"><div class="stat-label">신규고객</div><div class="stat-value mint">${newCust.length}건</div><div class="stat-sub">${Math.round(newCust.length/bookings.length*100)}%</div></div>
+      <div class="stat-card"><div class="stat-label">취소율</div><div class="stat-value ${cancelRate>15?'red':'red'}">${cancelRate}%</div><div class="stat-sub">${cancelRate>15?'높음':'적정'}</div></div>
+      <div class="stat-card"><div class="stat-label">성수요일</div><div class="stat-value indigo">${peakDay}요일</div><div class="stat-sub">${dayCntMap[Object.keys(dayCntMap).reduce((a,b)=>dayCntMap[a]>dayCntMap[b]?a:b)]}건</div></div>
+    </div>
+
+    <!-- 매출 추이 (매출+건수 듀얼) -->
     <div class="card" style="margin-top:14px">
-      <div class="card-title">📈 기간 매출 추이</div>
+      <div class="card-title">📈 기간별 매출 & 예약 추이</div>
       <div class="chart-wrap"><canvas id="schLineChart"></canvas></div>
     </div>
 
-    <!-- 요일별 + 시술별 -->
+    <!-- 요일별 성과 -->
     <div class="card" style="margin-top:14px">
-      <div class="card-title">📅 요일별 예약</div>
+      <div class="card-title">📅 요일별 매출 & 예약건수</div>
       <div class="chart-wrap"><canvas id="schDayChart"></canvas></div>
+      <div style="margin-top:8px;font-size:13px;color:#666;text-align:center">
+        🏆 성수요일: <strong>${peakDay}요일 ${dayCntMap[Object.keys(dayCntMap).reduce((a,b)=>dayCntMap[a]>dayCntMap[b]?a:b)]}건</strong> | 
+        성수시간: <strong>${peakHour}시 ${timeMap[peakHour]}건</strong>
+      </div>
     </div>
 
+    <!-- 시간대별 분포 -->
     <div class="card" style="margin-top:14px">
-      <div class="card-title">✂️ 시술별 매출</div>
+      <div class="card-title">⏰ 시간대별 예약 분포</div>
+      <div class="chart-wrap"><canvas id="schTimeChart"></canvas></div>
+    </div>
+
+    <!-- 시술별 매출 -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-title">✂️ 시술별 매출 & 건수</div>
       <div class="chart-wrap"><canvas id="schSvcChart"></canvas></div>
       <div id="schSvcLegend" class="legend" style="margin-top:8px"></div>
     </div>
 
-    <!-- 예약 vs 취소 도넛 -->
-    <div class="card" style="margin-top:14px">
-      <div class="card-title">🔵 예약 현황 비율</div>
-      <div style="display:flex;align-items:center;gap:16px">
-        <div style="width:140px;height:140px;flex-shrink:0"><canvas id="schDonutChart"></canvas></div>
-        <div id="schDonutLegend" class="legend" style="flex-direction:column;gap:8px"></div>
+    <!-- 고객 유형별 현황 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+      <div class="card">
+        <div class="card-title">🔵 예약 현황 비율</div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="width:120px;height:120px;flex-shrink:0"><canvas id="schDonutChart"></canvas></div>
+          <div id="schDonutLegend" class="legend" style="flex-direction:column;gap:6px"></div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">👥 고객 유형별 비율</div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="width:120px;height:120px;flex-shrink:0"><canvas id="schCustomerChart"></canvas></div>
+          <div id="schCustomerLegend" class="legend" style="flex-direction:column;gap:6px"></div>
+        </div>
       </div>
     </div>
   `;
 
-  // 매출 추이 라인차트
+  // 매출+건수 추이 차트
   destroyChart('schLineChart');
   charts['schLineChart']=new Chart(document.getElementById('schLineChart'),{
-    type:'line',
-    data:{labels:dateKeys.map(d=>d.slice(5)),datasets:[{
-      label:'매출',data:dateKeys.map(k=>dateMap[k]),
-      borderColor:'#1a73e8',backgroundColor:'rgba(26,115,232,.1)',
-      fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#1a73e8'
-    }]},
-    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'}},x:{ticks:{maxTicksLimit:10},grid:{display:false}}},maintainAspectRatio:true}
+    type:'bar',
+    data:{labels:dateKeys.map(d=>d.slice(5)),datasets:[
+      {label:'매출(원)',data:dateKeys.map(k=>dateMap[k]),backgroundColor:'rgba(26,115,232,0.7)',borderRadius:6,yAxisID:'y'},
+      {label:'예약건',data:dateKeys.map(k=>dateCntMap[k]||0),type:'line',borderColor:'#34a853',backgroundColor:'rgba(52,168,83,.2)',pointBackgroundColor:'#34a853',pointRadius:4,fill:true,tension:.4,yAxisID:'y1'}
+    ]},
+    options:{plugins:{legend:{position:'top',labels:{boxWidth:10,padding:12}}},scales:{y:{beginAtZero:true,position:'left',grid:{color:'rgba(0,0,0,.05)'}},y1:{beginAtZero:true,position:'right',grid:{display:false},ticks:{stepSize:1}}},maintainAspectRatio:true}
   });
 
-  // 요일별 바+라인 차트
+  // 요일별 매출+건수 차트
   destroyChart('schDayChart');
   charts['schDayChart']=new Chart(document.getElementById('schDayChart'),{
     type:'bar',
-    data:{labels:['월','화','수','목','금','토','일'],datasets:[
-      {label:'매출(원)',data:Object.values(dayRevMap),backgroundColor:'rgba(26,115,232,0.6)',borderRadius:6,yAxisID:'y'},
-      {label:'예약건',data:Object.values(dayCntMap),type:'line',borderColor:'#34a853',backgroundColor:'rgba(52,168,83,.1)',pointBackgroundColor:'#34a853',pointRadius:4,fill:true,tension:.4,yAxisID:'y1'}
+    data:{labels:dayLabels,datasets:[
+      {label:'매출(원)',data:Object.values(dayRevMap),backgroundColor:dayLabels.map(d=>d===peakDay?'rgba(26,115,232,0.9)':'rgba(26,115,232,0.5)'),borderRadius:6,yAxisID:'y'},
+      {label:'예약건',data:Object.values(dayCntMap),type:'line',borderColor:'#34a853',backgroundColor:'rgba(52,168,83,.2)',pointBackgroundColor:dayLabels.map(d=>d===peakDay?'#ff6b35':'#34a853'),pointRadius:5,fill:true,tension:.4,yAxisID:'y1'}
     ]},
     options:{plugins:{legend:{position:'top',labels:{boxWidth:10,padding:10}}},scales:{y:{beginAtZero:true,position:'left',grid:{display:false}},y1:{beginAtZero:true,position:'right',grid:{display:false},ticks:{stepSize:1}}},maintainAspectRatio:true}
+  });
+
+  // 시간대별 바차트
+  destroyChart('schTimeChart');
+  charts['schTimeChart']=new Chart(document.getElementById('schTimeChart'),{
+    type:'bar',
+    data:{labels:timeLabels,datasets:[{
+      label:'예약건수',
+      data:Object.values(timeMap),
+      backgroundColor:Object.keys(timeMap).map(h=>h==peakHour?'rgba(255,107,53,0.9)':'rgba(26,115,232,0.6)'),
+      borderRadius:6
+    }]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(0,0,0,.05)'}},x:{grid:{display:false}}},maintainAspectRatio:true}
   });
 
   // 시술별 가로 바차트
   destroyChart('schSvcChart');
   charts['schSvcChart']=new Chart(document.getElementById('schSvcChart'),{
     type:'bar',
-    data:{labels:svcEntries.map(([k])=>k.length>10?k.slice(0,10)+'…':k),datasets:[
-      {label:'매출',data:svcEntries.map(([,v])=>v.revenue),backgroundColor:svcColors,borderRadius:4},
+    data:{labels:svcEntries.map(([k])=>k.length>12?k.slice(0,12)+'…':k),datasets:[
+      {label:'매출(원)',data:svcEntries.map(([,v])=>v.revenue),backgroundColor:svcColors,borderRadius:4,yAxisID:'y'},
       {label:'건수',data:svcEntries.map(([,v])=>v.count),type:'line',borderColor:'#fbbc04',pointBackgroundColor:'#fbbc04',pointRadius:4,fill:false,yAxisID:'y1'}
     ]},
-    options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{display:false}},y1:{beginAtZero:true,position:'right',grid:{display:false},ticks:{stepSize:1}}},maintainAspectRatio:false,responsive:true}
+    options:{indexAxis:'y',plugins:{legend:{position:'top',labels:{boxWidth:10,padding:10}}},scales:{x:{beginAtZero:true,grid:{display:false}},y1:{beginAtZero:true,position:'right',grid:{display:false},ticks:{stepSize:1}}},maintainAspectRatio:false,responsive:true}
   });
-  document.getElementById('schSvcChart').style.height='220px';
+  document.getElementById('schSvcChart').style.height='200px';
   makeLegend('schSvcLegend', svcEntries.map(([k])=>k), svcColors);
 
-  // 도넛차트
+  // 예약현황 도넛차트
   const confirmedCnt = active.filter(b=>b.status==='confirmed'||b.status==='completed').length;
   const changedCnt   = changed.length;
   destroyChart('schDonutChart');
@@ -982,5 +1052,21 @@ function renderScheduleStats(bookings, from, to) {
   makeLegend('schDonutLegend',
     [`확정 ${confirmedCnt}건`, `취소 ${cancelled.length}건`, `변경 ${changedCnt}건`],
     ['#1a73e8','#ea4335','#ff9800']
+  );
+
+  // 고객유형 도넛차트
+  const regularCust = bookings.length - walkin.length - newCust.length;
+  destroyChart('schCustomerChart');
+  charts['schCustomerChart']=new Chart(document.getElementById('schCustomerChart'),{
+    type:'doughnut',
+    data:{labels:['기존고객','현장고객','신규고객'],datasets:[{
+      data:[regularCust, walkin.length, newCust.length],
+      backgroundColor:['#34a853','#fbbc04','#9c27b0'],borderWidth:0,hoverOffset:4
+    }]},
+    options:{plugins:{legend:{display:false}},cutout:'70%',maintainAspectRatio:true}
+  });
+  makeLegend('schCustomerLegend',
+    [`기존 ${regularCust}건`, `현장 ${walkin.length}건`, `신규 ${newCust.length}건`],
+    ['#34a853','#fbbc04','#9c27b0']
   );
 }
