@@ -37,7 +37,7 @@ function hardRefresh() {
 function switchPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === name));
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', ['today','schedule','week','month','walkin','stats'][i] === name);
+    btn.classList.toggle('active', ['today','schedule','week','month','walkin','stats','color'][i] === name);
   });
   currentPage = name;
   if (name==='today')    loadToday();
@@ -46,6 +46,7 @@ function switchPage(name) {
   if (name==='month')    loadMonth();
   if (name==='walkin')   initWalkin();
   if (name==='stats')    loadStats();
+  if (name==='color')    loadColor();
 }
 
 // ── DB 조회 ────────────────────────────────────
@@ -839,6 +840,7 @@ async function saveWalkin() {
   const svcRaw  = document.getElementById('walkinService').value.trim();
   const price   = parseInt(document.getElementById('walkinPrice').value) || 0;
   const memo    = document.getElementById('walkinMemo').value.trim();
+  const colorReq = document.getElementById('walkinColorReq').value.trim();
 
   if (!date || !name || !svcRaw) {
     alert('날짜, 이름, 시술명은 필수예요!');
@@ -846,6 +848,12 @@ async function saveWalkin() {
   }
 
   const service = matchService(svcRaw);
+  // 메모와 색상 요청사항 합치기
+  let finalMemo = memo;
+  if (colorReq) {
+    finalMemo = finalMemo ? `${memo} / 희망색상: ${colorReq}` : `희망색상: ${colorReq}`;
+  }
+  
   const booking = {
     customer_name:  name,
     service_name:   service,
@@ -853,7 +861,7 @@ async function saveWalkin() {
     booking_date:   date,
     booking_time:   time ? time + ':00' : '00:00:00',
     status:         'confirmed',
-    memo:           memo || null,
+    memo:           finalMemo || null,
     is_new_customer: false,
     customer_phone: null,
     booking_no: null,
@@ -882,6 +890,10 @@ async function saveWalkin() {
     document.getElementById('walkinPrice').value   = '';
     document.getElementById('walkinTime').value    = '';
     document.getElementById('walkinMemo').value    = '';
+    if (document.getElementById('walkinColorReq')) {
+      document.getElementById('walkinColorReq').value = '';
+      document.getElementById('walkinColorRow').style.display = 'none';
+    }
     btn.textContent = '✅ 저장됐어요!';
     setTimeout(() => { btn.textContent = '+ 현장고객 추가'; btn.disabled = false; }, 1500);
     // 관련 탭 새로고침
@@ -1033,10 +1045,17 @@ async function saveQuickWalkin() {
   const svcRaw  = document.getElementById('qService').value.trim();
   const price   = parseInt(document.getElementById('qPrice').value) || 0;
   const memo    = document.getElementById('qMemo').value.trim();
+  const colorReq = document.getElementById('qColorReq').value.trim();
 
   if (!date || !name || !svcRaw) { alert('날짜, 이름, 시술명은 필수예요!'); return; }
 
   const service = matchService(svcRaw);
+  // 메모와 색상 요청사항 합치기
+  let finalMemo = memo;
+  if (colorReq) {
+    finalMemo = finalMemo ? `${memo} / 희망색상: ${colorReq}` : `희망색상: ${colorReq}`;
+  }
+  
   const booking = {
     customer_name:   name,
     service_name:    service,
@@ -1044,7 +1063,7 @@ async function saveQuickWalkin() {
     booking_date:    date,
     booking_time:    time ? time+':00' : '00:00:00',
     status:          'confirmed',
-    memo:            memo || null,
+    memo:            finalMemo || null,
     is_new_customer: false,
     customer_phone:  null,
     booking_no:      null,
@@ -1275,4 +1294,407 @@ function renderScheduleStats(bookings, from, to) {
     [`기존 ${regularCust}건`, `현장 ${walkin.length}건`, `신규 ${newCust.length}건`],
     ['#34a853','#fbbc04','#9c27b0']
   );
+}
+
+// ── 색상분석 탭 ─────────────────────────────────────────
+function loadColor() {
+  // 탭 로드 시 초기화
+  document.getElementById('colorResult').classList.add('hidden');
+}
+
+// 헤어 색상표 (업로드된 이미지 기준)
+const HAIR_COLORS = {
+  'GA': { name: '골든 애쉬', rgb: [218, 165, 32] },
+  'DK': { name: '다크', rgb: [139, 69, 19] },
+  'SG': { name: '실버 그레이', rgb: [192, 192, 192] },
+  'AG': { name: '애쉬 골드', rgb: [184, 134, 11] },
+  'SL': { name: '실버', rgb: [169, 169, 169] },
+  'WB': { name: '웜 베이지', rgb: [245, 245, 220] },
+  'EB': { name: '에메랄드 블루', rgb: [80, 200, 120] },
+  'AM': { name: '애쉬 민트', rgb: [152, 251, 152] },
+  'BLUE': { name: '블루', rgb: [0, 100, 200] },
+  'DB': { name: '다크 블루', rgb: [0, 0, 139] },
+  'DV': { name: '다크 바이올렛', rgb: [148, 0, 211] },
+  'AV': { name: '애쉬 바이올렛', rgb: [199, 21, 133] },
+  'RV': { name: '레드 바이올렛', rgb: [255, 20, 147] },
+  'VM': { name: '바이올렛 마젠타', rgb: [255, 0, 255] },
+  'RED': { name: '레드', rgb: [255, 0, 0] },
+  'CP': { name: '코퍼', rgb: [184, 115, 51] },
+  'VP': { name: '바이올렛 핑크', rgb: [238, 130, 238] },
+  'RP': { name: '레드 핑크', rgb: [255, 105, 180] },
+  'PN': { name: '핑크', rgb: [255, 192, 203] },
+  'AP': { name: '애쉬 핑크', rgb: [255, 182, 193] },
+  'MB': { name: '마젠타 브라운', rgb: [205, 92, 92] },
+  '613': { name: '블리치 블론드', rgb: [255, 255, 224] },
+  'BW': { name: '브라운', rgb: [165, 42, 42] },
+  '5K': { name: '5레벨 브라운', rgb: [139, 69, 19] },
+  '6K': { name: '6레벨 브라운', rgb: [160, 82, 45] },
+  '4/30': { name: '4/30 골든브라운', rgb: [205, 133, 63] },
+  'RB': { name: '레드 브라운', rgb: [165, 42, 42] },
+  'OB': { name: '오렌지 브라운', rgb: [255, 140, 0] },
+  '8': { name: '8레벨', rgb: [210, 180, 140] },
+  '6': { name: '6레벨', rgb: [139, 69, 19] },
+  '5': { name: '5레벨', rgb: [101, 67, 33] },
+  '4': { name: '4레벨', rgb: [83, 53, 10] },
+  '3': { name: '3레벨', rgb: [62, 39, 35] },
+  '2': { name: '2레벨', rgb: [36, 35, 35] },
+  '1B': { name: '1B 다크브라운', rgb: [25, 25, 25] },
+  'NA': { name: '내추럴', rgb: [139, 69, 19] },
+  '1': { name: '1레벨 블랙', rgb: [0, 0, 0] }
+};
+
+// RGB 거리 계산
+function colorDistance(rgb1, rgb2) {
+  return Math.sqrt(
+    Math.pow(rgb1[0] - rgb2[0], 2) +
+    Math.pow(rgb1[1] - rgb2[1], 2) +
+    Math.pow(rgb1[2] - rgb2[2], 2)
+  );
+}
+
+// 이미지에서 주요 색상 추출
+function extractColors(canvas, ctx) {
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  const colorMap = {};
+  
+  // 픽셀 샘플링
+  for (let i = 0; i < data.length; i += 4 * 50) { // 50픽셀마다 샘플링
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+    
+    if (a < 200) continue; // 투명 픽셀 제외
+    
+    // 색상 그룹화 (20단위로)
+    const rGroup = Math.floor(r / 20) * 20;
+    const gGroup = Math.floor(g / 20) * 20;
+    const bGroup = Math.floor(b / 20) * 20;
+    
+    const key = `${rGroup},${gGroup},${bGroup}`;
+    colorMap[key] = (colorMap[key] || 0) + 1;
+  }
+  
+  // 빈도순 정렬하여 상위 3개 색상 반환
+  return Object.entries(colorMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([key]) => key.split(',').map(Number));
+}
+
+// 색상 분석 메인 함수
+function analyzeColor(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      // 캔버스에 이미지 그리기
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      // 업로드된 이미지 표시
+      document.getElementById('uploadedImage').src = e.target.result;
+      
+      // 주요 색상 추출
+      const extractedColors = extractColors(canvas, ctx);
+      
+      // 각 추출된 색상에 대해 가장 가까운 헤어 색상 찾기
+      const matches = extractedColors.map(rgb => {
+        let bestMatch = null;
+        let minDistance = Infinity;
+        
+        Object.entries(HAIR_COLORS).forEach(([code, info]) => {
+          const distance = colorDistance(rgb, info.rgb);
+          if (distance < minDistance) {
+            minDistance = distance;
+            bestMatch = { code, ...info, distance, extractedRgb: rgb };
+          }
+        });
+        
+        return bestMatch;
+      });
+      
+      // 중복 제거 (같은 코드면 거리 짧은 것만)
+      const uniqueMatches = [];
+      matches.forEach(match => {
+        const existing = uniqueMatches.find(m => m.code === match.code);
+        if (!existing || match.distance < existing.distance) {
+          if (existing) {
+            uniqueMatches.splice(uniqueMatches.indexOf(existing), 1);
+          }
+          uniqueMatches.push(match);
+        }
+      });
+      
+      // 결과 표시
+      displayColorResults(uniqueMatches.slice(0, 3));
+      document.getElementById('colorResult').classList.remove('hidden');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// 색상 결과 표시
+function displayColorResults(matches) {
+  const container = document.getElementById('matchedColors');
+  const infoContainer = document.getElementById('colorInfo');
+  
+  container.innerHTML = '';
+  
+  matches.forEach((match, index) => {
+    // 색상 사각형
+    const colorBox = document.createElement('div');
+    colorBox.style.cssText = `
+      width: 60px; height: 60px; border-radius: 6px;
+      background: rgb(${match.rgb.join(',')}); 
+      border: 2px solid #ddd; position: relative;
+      flex-shrink: 0; cursor: pointer;
+    `;
+    
+    // 클릭 시 예시 사진 생성
+    colorBox.addEventListener('click', () => generateColorExample(match));
+    
+    // 색상 코드 라벨
+    const label = document.createElement('div');
+    label.style.cssText = `
+      position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+      font-size: 11px; font-weight: 600; color: #333; white-space: nowrap;
+    `;
+    label.textContent = match.code;
+    colorBox.appendChild(label);
+    
+    container.appendChild(colorBox);
+  });
+  
+  // 상세 정보
+  const topMatch = matches[0];
+  const accuracy = Math.max(0, 100 - Math.round(topMatch.distance / 4.4));
+  
+  infoContainer.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <strong style="color: #1a73e8;">🎯 추천 색상: ${topMatch.code} (${topMatch.name})</strong>
+      <span style="color: #34a853; font-weight: 600;">${accuracy}% 일치</span>
+    </div>
+    <div style="font-size: 12px; color: #666;">
+      <div>• 추출된 RGB: rgb(${topMatch.extractedRgb.join(', ')})</div>
+      <div>• 색상표 RGB: rgb(${topMatch.rgb.join(', ')})</div>
+      ${matches.length > 1 ? `<div style="margin-top: 6px;">• 대안 색상: ${matches.slice(1).map(m => m.code).join(', ')}</div>` : ''}
+    </div>
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+      <button onclick="generateAllExamples([${matches.map(m => `{code:'${m.code}',name:'${m.name}',rgb:[${m.rgb.join(',')}]}`).join(',')}])" style="
+        width: 100%; padding: 10px; background: #1a73e8; color: white; border: none; 
+        border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;
+      ">📸 고객 전송용 예시 사진 생성</button>
+      <div style="font-size: 11px; color: #999; text-align: center; margin-top: 4px;">
+        색상을 클릭하거나 위 버튼을 눌러 고객에게 보낼 예시 이미지를 생성하세요
+      </div>
+    </div>
+  `;
+}
+
+// ── 색상 요청사항 관리 ─────────────────────────────────────
+function checkColorField() {
+  // 시술명에 염색 관련 키워드가 있는지 확인
+  const colorKeywords = ['염색', '컬러', '블리치', '탈색', '하이라이트', '옴브레', '발레야주', '투톤'];
+  
+  // 현장고객 탭
+  const walkinService = document.getElementById('walkinService').value;
+  const walkinColorRow = document.getElementById('walkinColorRow');
+  if (walkinColorRow) {
+    const showWalkinColor = colorKeywords.some(keyword => walkinService.includes(keyword));
+    walkinColorRow.style.display = showWalkinColor ? 'flex' : 'none';
+  }
+  
+  // 빠른입력 모달
+  const qService = document.getElementById('qService').value;
+  const qColorRow = document.getElementById('qColorRow');
+  if (qColorRow) {
+    const showQColor = colorKeywords.some(keyword => qService.includes(keyword));
+    qColorRow.style.display = showQColor ? 'flex' : 'none';
+  }
+}
+
+// 색상분석 탭으로 이동
+function openColorAnalysis() {
+  switchPage('color');
+  // 모달이 열려있으면 닫기
+  const modal = document.getElementById('quickModal');
+  if (modal && !modal.classList.contains('hidden')) {
+    closeQuickWalkin();
+  }
+}
+
+// 시술명 입력 시 색상 필드 자동 표시/숨김
+document.addEventListener('DOMContentLoaded', () => {
+  const walkinService = document.getElementById('walkinService');
+  const qService = document.getElementById('qService');
+  
+  if (walkinService) {
+    walkinService.addEventListener('input', checkColorField);
+  }
+  
+  if (qService) {
+    qService.addEventListener('input', checkColorField);
+  }
+});
+
+// ── 고객 전송용 예시 사진 생성 ─────────────────────────────
+function generateColorExample(colorMatch) {
+  generateExampleImage([colorMatch]);
+}
+
+function generateAllExamples(matches) {
+  generateExampleImage(matches);
+}
+
+function generateExampleImage(colorMatches) {
+  // 캔버스 생성 (고해상도)
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = 800;
+  canvas.height = 1000;
+  
+  // 배경 그라디언트
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0, '#f8f9fa');
+  gradient.addColorStop(1, '#e9ecef');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // 헤더
+  ctx.fillStyle = '#1a73e8';
+  ctx.fillRect(0, 0, canvas.width, 120);
+  
+  // 헤더 텍스트
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 32px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('✂️ 더에이치헤어 색상 가이드', canvas.width / 2, 45);
+  ctx.font = '18px -apple-system, sans-serif';
+  ctx.fillText('고객님의 희망 색상을 찾아드렸어요!', canvas.width / 2, 80);
+  
+  // 메인 색상 표시
+  let yPos = 160;
+  const mainColor = colorMatches[0];
+  
+  // 큰 색상 사각형 (메인)
+  const mainSize = 280;
+  const mainX = (canvas.width - mainSize) / 2;
+  
+  // 색상 박스
+  ctx.fillStyle = `rgb(${mainColor.rgb.join(',')})`;
+  ctx.fillRect(mainX, yPos, mainSize, mainSize);
+  
+  // 색상 박스 테두리
+  ctx.strokeStyle = '#ddd';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(mainX, yPos, mainSize, mainSize);
+  
+  yPos += mainSize + 30;
+  
+  // 메인 색상 정보
+  ctx.fillStyle = '#333';
+  ctx.font = 'bold 36px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${mainColor.code}`, canvas.width / 2, yPos);
+  
+  yPos += 40;
+  ctx.font = '24px -apple-system, sans-serif';
+  ctx.fillText(`${mainColor.name}`, canvas.width / 2, yPos);
+  
+  yPos += 60;
+  
+  // 대안 색상들 (2개 이상인 경우)
+  if (colorMatches.length > 1) {
+    ctx.fillStyle = '#666';
+    ctx.font = 'bold 20px -apple-system, sans-serif';
+    ctx.fillText('대안 색상', canvas.width / 2, yPos);
+    yPos += 40;
+    
+    const altColors = colorMatches.slice(1, 3); // 최대 2개
+    const altSize = 120;
+    const spacing = 40;
+    const totalWidth = altColors.length * altSize + (altColors.length - 1) * spacing;
+    let altX = (canvas.width - totalWidth) / 2;
+    
+    altColors.forEach((color, index) => {
+      // 색상 박스
+      ctx.fillStyle = `rgb(${color.rgb.join(',')})`;
+      ctx.fillRect(altX, yPos, altSize, altSize);
+      
+      // 테두리
+      ctx.strokeStyle = '#ddd';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(altX, yPos, altSize, altSize);
+      
+      // 색상 코드
+      ctx.fillStyle = '#333';
+      ctx.font = 'bold 16px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(color.code, altX + altSize/2, yPos + altSize + 25);
+      
+      // 색상명
+      ctx.font = '12px -apple-system, sans-serif';
+      ctx.fillText(color.name.length > 8 ? color.name.slice(0,8)+'...' : color.name, 
+                   altX + altSize/2, yPos + altSize + 45);
+      
+      altX += altSize + spacing;
+    });
+    
+    yPos += altSize + 80;
+  }
+  
+  // 하단 정보
+  ctx.fillStyle = '#666';
+  ctx.font = '16px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('💡 상담 시 위 색상 코드를 말씀해주세요', canvas.width / 2, yPos);
+  yPos += 30;
+  ctx.fillText('📞 문의: 더에이치헤어', canvas.width / 2, yPos);
+  yPos += 30;
+  
+  const today = new Date();
+  ctx.fillStyle = '#999';
+  ctx.font = '12px -apple-system, sans-serif';
+  ctx.fillText(`생성일: ${today.getFullYear()}.${(today.getMonth()+1).toString().padStart(2,'0')}.${today.getDate().toString().padStart(2,'0')}`, 
+               canvas.width / 2, yPos);
+  
+  // 이미지 다운로드 링크 생성
+  canvas.toBlob(function(blob) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `헤어색상가이드_${mainColor.code}_${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}.png`;
+    link.style.display = 'none';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    // 성공 메시지
+    const infoContainer = document.getElementById('colorInfo');
+    const successDiv = document.createElement('div');
+    successDiv.style.cssText = `
+      margin-top: 12px; padding: 10px; background: #e8f5e8; border: 1px solid #4caf50;
+      border-radius: 6px; text-align: center; font-size: 13px; color: #2e7d32;
+    `;
+    successDiv.innerHTML = `✅ 고객 전송용 색상 가이드 이미지가 다운로드됐어요!<br><small>카카오톡, 문자 등으로 고객에게 전송해주세요</small>`;
+    infoContainer.appendChild(successDiv);
+    
+    // 3초 후 제거
+    setTimeout(() => {
+      if (successDiv.parentNode) {
+        successDiv.parentNode.removeChild(successDiv);
+      }
+    }, 3000);
+  }, 'image/png', 1.0);
 }
