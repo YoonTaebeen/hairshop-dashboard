@@ -94,6 +94,10 @@
   /* 삭제 링크 */
   .delete-link{font-size:11px;color:var(--red);cursor:pointer;text-decoration:underline;opacity:.7;}
   .delete-link:active{opacity:1;}
+  /* X 삭제 버튼 */
+  .delete-x{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--red-light);color:var(--red);border:none;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;opacity:.8;}
+  .delete-x:active{opacity:1;background:var(--red);color:#fff;}
+  .booking-card{position:relative;}
   .booking-price{font-size:15px;font-weight:800;color:var(--gray-800);white-space:nowrap;flex-shrink:0;}
   .booking-price.cancelled{text-decoration:line-through;color:var(--gray-400);font-weight:400;}
 
@@ -310,12 +314,6 @@
     </div>
 
     <button id="walkinSaveBtn" class="walkin-save-btn" onclick="saveWalkin()">+ 현장고객 추가</button>
-  </div>
-
-  <!-- 해당일 예약 목록 -->
-  <div class="card">
-    <div class="card-title" id="walkinDateSummary">날짜를 선택하세요</div>
-    <div class="booking-list" id="walkinList"></div>
   </div>
 </div>
 

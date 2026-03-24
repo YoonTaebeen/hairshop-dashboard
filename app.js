@@ -125,6 +125,7 @@ function bookingCardHtml(b) {
     : '';
 
   return `<div class="booking-card ${cardCls}">
+    ${!b.booking_no ? `<button class="delete-x" onclick="deleteBooking(${b.id})" title="삭제">✕</button>` : ''}
     <div class="time-col">
       <div class="time-main">${b.booking_time?.slice(0,5)||'--:--'}</div>
       <div class="time-end">~${endStr}</div>
@@ -143,10 +144,7 @@ function bookingCardHtml(b) {
           </div>
           ${dateInfo}
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-          <div class="booking-price ${priceCls}">${won(b.service_price)}원</div>
-          ${!b.booking_no ? `<span class="delete-link" onclick="deleteBooking(${b.id})">삭제</span>` : ''}
-        </div>
+        <div class="booking-price ${priceCls}">${won(b.service_price)}원</div>
       </div>
       ${memoHtml}
     </div>
@@ -679,11 +677,9 @@ async function saveWalkin() {
     document.getElementById('walkinMemo').value    = '';
     btn.textContent = '✅ 저장됐어요!';
     setTimeout(() => { btn.textContent = '+ 현장고객 추가'; btn.disabled = false; }, 1500);
-
-    // 목록 새로고침
-    loadWalkinList();
-    // 오늘 탭도 새로고침
-    if (currentPage === 'today') loadToday();
+    // 관련 탭 새로고침
+    loadToday();
+    if (currentPage === 'schedule') loadSchedule();
   } catch(e) {
     btn.textContent = '저장 실패';
     btn.disabled = false;
@@ -693,9 +689,12 @@ async function saveWalkin() {
 
 // 해당일 현장고객 목록
 async function loadWalkinList() {
-  const date = document.getElementById('walkinDate').value;
+  const dateEl = document.getElementById('walkinDate');
+  if (!dateEl) return;
+  const date = dateEl.value;
   if (!date) return;
   const el = document.getElementById('walkinList');
+  if (!el) return; // walkin 목록 영역 없으면 스킵
   el.innerHTML = '<div class="loading">불러오는 중...</div>';
   try {
     const list = await sbGet('bookings', {
@@ -703,10 +702,9 @@ async function loadWalkinList() {
       order: 'booking_time.asc',
       select: '*'
     });
-    document.getElementById('walkinDateSummary') &&
-    (document.getElementById('walkinDateSummary').textContent =
-      `${date.slice(5).replace('-','월 ')}일 — 총 ${list.length}건 / ${won(list.reduce((s,b)=>s+(b.service_price||0),0))}원`);
-
+    const summaryEl = document.getElementById('walkinDateSummary');
+    if (summaryEl) summaryEl.textContent =
+      `${date.slice(5).replace('-','월 ')}일 — 총 ${list.length}건 / ${won(list.reduce((s,b)=>s+(b.service_price||0),0))}원`;
     if (!list.length) { el.innerHTML='<div class="empty">예약이 없어요</div>'; return; }
     el.innerHTML = list.map(b => bookingCardHtml(b)).join('');
   } catch(e) {
@@ -723,10 +721,12 @@ async function deleteBooking(id) {
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
     });
     if (!res.ok) throw new Error(await res.text());
-    // 현재 탭 새로고침
+    // 현재 탭 즉시 새로고침
     if (currentPage==='today')    loadToday();
     if (currentPage==='schedule') loadSchedule();
     if (currentPage==='walkin')   loadWalkinList();
+    if (currentPage==='week')     loadWeek();
+    if (currentPage==='month')    loadMonth();
   } catch(e) { alert('삭제 실패: ' + e.message); }
 }
 
