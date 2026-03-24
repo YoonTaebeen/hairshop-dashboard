@@ -699,8 +699,9 @@ async function loadWalkinList() {
       order: 'booking_time.asc',
       select: '*'
     });
-    document.getElementById('walkinDateSummary').textContent =
-      `${date.slice(5).replace('-','월 ')}일 — 총 ${list.length}건 / ${won(list.reduce((s,b)=>s+(b.service_price||0),0))}원`;
+    document.getElementById('walkinDateSummary') &&
+    (document.getElementById('walkinDateSummary').textContent =
+      `${date.slice(5).replace('-','월 ')}일 — 총 ${list.length}건 / ${won(list.reduce((s,b)=>s+(b.service_price||0),0))}원`);
 
     if (!list.length) { el.innerHTML='<div class="empty">예약이 없어요</div>'; return; }
     el.innerHTML = list.map(b => bookingCardHtml(b)).join('');
@@ -725,22 +726,34 @@ async function deleteWalkin(id) {
 function openQuickWalkin(date) {
   const modal = document.getElementById('quickModal');
   modal.classList.remove('hidden');
-  // 날짜 설정
   const d = date || toDateStr(now);
   document.getElementById('qDate').value = d;
-  // 현재 시간 기본값
   const h = String(now.getHours()).padStart(2,'0');
   const m = String(now.getMinutes()).padStart(2,'0');
   document.getElementById('qTime').value = `${h}:${m}`;
-  document.getElementById('qName').value = '';
+  document.getElementById('qName').value    = '';
   document.getElementById('qService').value = '';
-  document.getElementById('qPrice').value = '';
-  document.getElementById('qMemo').value = '';
+  document.getElementById('qPrice').value   = '';
+  document.getElementById('qMemo').value    = '';
   document.getElementById('qSaveBtn').textContent = '+ 현장고객 추가';
-  document.getElementById('qSaveBtn').disabled = false;
-  // 자동완성 설정
+  document.getElementById('qSaveBtn').disabled    = false;
+  // 날짜 요약 로드
+  loadQDateSummary(d);
   setupQuickAutocomplete();
+  // 날짜 변경 시 요약 갱신
+  document.getElementById('qDate').onchange = function() { loadQDateSummary(this.value); };
   setTimeout(() => document.getElementById('qName').focus(), 300);
+}
+
+async function loadQDateSummary(date) {
+  if (!date) return;
+  const el = document.getElementById('qDateSummary');
+  if (!el) return;
+  try {
+    const list = await sbGet('bookings', { booking_date:`eq.${date}`, select:'id,service_price,status' });
+    const active = list.filter(b=>b.status!=='cancelled');
+    el.textContent = `📅 ${date.slice(5).replace('-','월 ')}일 현재 ${active.length}건 / ${won(active.reduce((s,b)=>s+(b.service_price||0),0))}원`;
+  } catch(e) { el.textContent = ''; }
 }
 
 function closeQuickWalkin() {

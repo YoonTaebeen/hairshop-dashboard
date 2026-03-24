@@ -342,25 +342,30 @@
 
 <script src="app.js"></script>
 
-<!-- 현장고객 빠른입력 모달 -->
+<!-- 현장고객 빠른입력 모달 (바텀시트) -->
 <div class="modal-overlay hidden" id="quickModal" onclick="closeQuickModal(event)">
   <div class="modal-sheet">
     <div class="modal-header">
       <span class="modal-title">✂️ 현장고객 추가</span>
       <button class="modal-close" onclick="closeQuickWalkin()">✕</button>
     </div>
+
+    <!-- 날짜 -->
     <div class="walkin-row">
       <label class="walkin-label">날짜</label>
       <input type="date" id="qDate" class="walkin-input">
     </div>
+    <!-- 시간 -->
     <div class="walkin-row">
       <label class="walkin-label">시간</label>
       <input type="time" id="qTime" class="walkin-input">
     </div>
+    <!-- 이름 -->
     <div class="walkin-row">
       <label class="walkin-label">이름</label>
-      <input type="text" id="qName" class="walkin-input" placeholder="고객 이름">
+      <input type="text" id="qName" class="walkin-input" placeholder="고객 이름" maxlength="20">
     </div>
+    <!-- 시술명 자동완성 -->
     <div class="walkin-row" style="position:relative">
       <label class="walkin-label">시술명</label>
       <div style="flex:1;position:relative">
@@ -368,14 +373,23 @@
         <div id="qServiceDropdown" class="svc-dropdown"></div>
       </div>
     </div>
+    <!-- 금액 -->
     <div class="walkin-row">
       <label class="walkin-label">금액</label>
-      <input type="number" id="qPrice" class="walkin-input" placeholder="0" step="1000">
+      <div style="flex:1;display:flex;align-items:center;gap:6px">
+        <input type="number" id="qPrice" class="walkin-input" placeholder="0" step="1000">
+        <span style="font-size:13px;color:var(--gray-400);white-space:nowrap">원</span>
+      </div>
     </div>
+    <!-- 메모 -->
     <div class="walkin-row">
       <label class="walkin-label">메모</label>
       <input type="text" id="qMemo" class="walkin-input" placeholder="요청사항 (선택)">
     </div>
+
+    <!-- 해당일 예약 미리보기 -->
+    <div id="qDateSummary" style="font-size:12px;color:var(--gray-400);text-align:center;margin:8px 0;"></div>
+
     <button id="qSaveBtn" class="walkin-save-btn" onclick="saveQuickWalkin()">+ 현장고객 추가</button>
   </div>
 </div>
