@@ -228,13 +228,12 @@ async function loadSchedule() {
 
     const confirmed = bookings.filter(b=>b.status==='confirmed'||b.status==='completed');
     const cancelled = bookings.filter(b=>b.status==='cancelled');
-    const changed   = bookings.filter(b=>b.status==='changed');
+    const walkin    = bookings.filter(b=>!b.booking_no); // 예약번호 없음 = 현장고객
 
     document.getElementById('schTotal').textContent     = bookings.length+'건';
     document.getElementById('schCancel').textContent    = cancelled.length+'건';
-    document.getElementById('schChanged').textContent   = changed.length+'건';
+    document.getElementById('schWalkin').textContent    = walkin.length+'건';
     document.getElementById('schConfirmed').textContent = confirmed.length+'건';
-    // 필터 버튼에서 cancelled가 변경취소(cancelled)도 포함하도록 이미 처리됨
 
     renderSchedule(bookings);
   } catch(e) {
@@ -720,4 +719,128 @@ async function deleteWalkin(id) {
     });
     loadWalkinList();
   } catch(e) { alert('삭제 실패: ' + e.message); }
+}
+
+// ── 빠른입력 모달 (오늘/스케줄 탭에서 사용) ────────────
+function openQuickWalkin(date) {
+  const modal = document.getElementById('quickModal');
+  modal.classList.remove('hidden');
+  // 날짜 설정
+  const d = date || toDateStr(now);
+  document.getElementById('qDate').value = d;
+  // 현재 시간 기본값
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('qTime').value = `${h}:${m}`;
+  document.getElementById('qName').value = '';
+  document.getElementById('qService').value = '';
+  document.getElementById('qPrice').value = '';
+  document.getElementById('qMemo').value = '';
+  document.getElementById('qSaveBtn').textContent = '+ 현장고객 추가';
+  document.getElementById('qSaveBtn').disabled = false;
+  // 자동완성 설정
+  setupQuickAutocomplete();
+  setTimeout(() => document.getElementById('qName').focus(), 300);
+}
+
+function closeQuickWalkin() {
+  document.getElementById('quickModal').classList.add('hidden');
+}
+
+function closeQuickModal(e) {
+  if (e.target === document.getElementById('quickModal')) closeQuickWalkin();
+}
+
+function setupQuickAutocomplete() {
+  const input = document.getElementById('qService');
+  const dropdown = document.getElementById('qServiceDropdown');
+  if (!input || !dropdown) return;
+  // 기존 이벤트 제거 후 재등록
+  const newInput = input.cloneNode(true);
+  input.parentNode.replaceChild(newInput, input);
+  newInput.addEventListener('input', function() {
+    const q = this.value.trim().toLowerCase();
+    if (!q) { dropdown.style.display='none'; return; }
+    const filtered = SERVICE_LIST.filter(s => s.toLowerCase().includes(q));
+    if (!filtered.length) { dropdown.style.display='none'; return; }
+    dropdown.innerHTML = filtered.map(s =>
+      `<div class="svc-option" onclick="selectQuickService('${s}')">${s}</div>`
+    ).join('');
+    dropdown.style.display = 'block';
+  });
+  newInput.addEventListener('blur', () => setTimeout(()=>{ dropdown.style.display='none'; }, 200));
+}
+
+function selectQuickService(name) {
+  document.getElementById('qService').value = name;
+  const priceMap = {
+    '남성컷(눈썹/라인정리)': 17000,
+    '남성컷+라인다운펌(눈썹/라인정리)': 30000,
+    '남성컷+디자인펌+클리닉': 50000,
+    '남성컷+남성부분펌': 35000,
+    '남성컷+블랙염색': 35000,
+    '남성컷+남자밝은염색': 45000,
+    '남성디자인펌': 40000,
+    '라인다운펌(커트시술X)': 25000,
+    '여성컷(눈썹정리)': 20000,
+    '여성셋팅펌+클리닉': 60000,
+    '여성컷+클리닉': 45000,
+    '여자뿌리염색': 35000,
+    '여자밝은염색': 55000,
+    '인모붙임머리(커트서비스)': 210000,
+    '붙임머리리터치(반단)': 80000,
+    '붙임머리제거': 35000,
+    '주니어컷(남자)': 12000,
+    '주니어컷(남자,초등)': 12000,
+  };
+  const priceEl = document.getElementById('qPrice');
+  if (priceMap[name] && !priceEl.value) priceEl.value = priceMap[name];
+  document.getElementById('qServiceDropdown').style.display = 'none';
+}
+
+async function saveQuickWalkin() {
+  const date    = document.getElementById('qDate').value;
+  const time    = document.getElementById('qTime').value;
+  const name    = document.getElementById('qName').value.trim();
+  const svcRaw  = document.getElementById('qService').value.trim();
+  const price   = parseInt(document.getElementById('qPrice').value) || 0;
+  const memo    = document.getElementById('qMemo').value.trim();
+
+  if (!date || !name || !svcRaw) { alert('날짜, 이름, 시술명은 필수예요!'); return; }
+
+  const service = matchService(svcRaw);
+  const booking = {
+    customer_name:   name,
+    service_name:    service,
+    service_price:   price,
+    booking_date:    date,
+    booking_time:    time ? time+':00' : '00:00:00',
+    status:          'confirmed',
+    memo:            memo || null,
+    is_new_customer: false,
+    customer_phone:  null,
+    booking_no:      null,
+  };
+
+  const btn = document.getElementById('qSaveBtn');
+  btn.textContent = '저장 중...'; btn.disabled = true;
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', apikey:SUPABASE_KEY,
+                 Authorization:`Bearer ${SUPABASE_KEY}`, Prefer:'return=minimal' },
+      body: JSON.stringify(booking)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    btn.textContent = '✅ 저장됐어요!';
+    setTimeout(() => closeQuickWalkin(), 800);
+    // 현재 탭 새로고침
+    if (currentPage==='today')    loadToday();
+    if (currentPage==='schedule') loadSchedule();
+    if (currentPage==='walkin')   loadWalkinList();
+  } catch(e) {
+    btn.textContent = '저장 실패'; btn.disabled = false;
+    alert('저장 실패: '+e.message);
+  }
 }

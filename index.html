@@ -122,8 +122,17 @@
   .legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gray-600);}
   .legend-dot{width:10px;height:10px;border-radius:50%;}
 
-  /* 현장고객 탭 */
-  .walkin-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  /* 현장고객 빠른추가 버튼 */
+  .walkin-quick-btn{width:100%;padding:12px;background:var(--orange);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;margin-bottom:10px;letter-spacing:.02em;}
+  .walkin-quick-btn:active{opacity:.8;}
+
+  /* 빠른입력 모달 */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:flex-end;}
+  .modal-overlay.hidden{display:none;}
+  .modal-sheet{background:#fff;border-radius:20px 20px 0 0;padding:20px 20px 40px;width:100%;max-height:85vh;overflow-y:auto;}
+  .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .modal-title{font-size:16px;font-weight:700;}
+  .modal-close{background:none;border:none;font-size:22px;color:var(--gray-400);cursor:pointer;padding:0 4px;}
   .walkin-label{font-size:12px;font-weight:600;color:var(--gray-600);min-width:40px;text-align:right;}
   .walkin-input{flex:1;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;color:var(--gray-800);background:var(--gray-50);outline:none;width:100%;}
   .walkin-input:focus{border-color:var(--primary);background:#fff;}
@@ -172,7 +181,8 @@
     <div class="card-title">오늘 예약 현황</div>
     <div class="booking-list" id="todayBookings"><div class="loading">불러오는 중...</div></div>
   </div>
-  <button class="refresh-btn" onclick="hardRefresh()">↻ 새로고침 (완전 초기화)</button>
+  <button class="walkin-quick-btn" onclick="openQuickWalkin(null)">+ 현장고객 추가</button>
+  <button class="refresh-btn" onclick="hardRefresh()">↻ 새로고침</button>
 </div>
 
 <!-- 스케줄 -->
@@ -182,7 +192,7 @@
     <div class="stat-card"><div class="stat-label">취소</div><div class="stat-value red" id="schCancel">-</div></div>
   </div>
   <div class="stat-grid">
-    <div class="stat-card"><div class="stat-label">변경</div><div class="stat-value orange" id="schChanged">-</div></div>
+    <div class="stat-card"><div class="stat-label">현장고객</div><div class="stat-value orange" id="schWalkin">-</div></div>
     <div class="stat-card"><div class="stat-label">확정</div><div class="stat-value green" id="schConfirmed">-</div></div>
   </div>
 
@@ -211,6 +221,7 @@
     <button class="filter-btn" onclick="filterSchedule('completed',this)">완료</button>
   </div>
 
+  <button class="walkin-quick-btn" onclick="openQuickWalkin(document.getElementById('schFrom').value||null)">+ 현장고객 추가</button>
   <div id="scheduleList"><div class="empty">날짜를 선택하고 조회해주세요</div></div>
 </div>
 
@@ -330,5 +341,43 @@
 </div>
 
 <script src="app.js"></script>
+
+<!-- 현장고객 빠른입력 모달 -->
+<div class="modal-overlay hidden" id="quickModal" onclick="closeQuickModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <span class="modal-title">✂️ 현장고객 추가</span>
+      <button class="modal-close" onclick="closeQuickWalkin()">✕</button>
+    </div>
+    <div class="walkin-row">
+      <label class="walkin-label">날짜</label>
+      <input type="date" id="qDate" class="walkin-input">
+    </div>
+    <div class="walkin-row">
+      <label class="walkin-label">시간</label>
+      <input type="time" id="qTime" class="walkin-input">
+    </div>
+    <div class="walkin-row">
+      <label class="walkin-label">이름</label>
+      <input type="text" id="qName" class="walkin-input" placeholder="고객 이름">
+    </div>
+    <div class="walkin-row" style="position:relative">
+      <label class="walkin-label">시술명</label>
+      <div style="flex:1;position:relative">
+        <input type="text" id="qService" class="walkin-input" placeholder="시술명 입력 (자동완성)" autocomplete="off">
+        <div id="qServiceDropdown" class="svc-dropdown"></div>
+      </div>
+    </div>
+    <div class="walkin-row">
+      <label class="walkin-label">금액</label>
+      <input type="number" id="qPrice" class="walkin-input" placeholder="0" step="1000">
+    </div>
+    <div class="walkin-row">
+      <label class="walkin-label">메모</label>
+      <input type="text" id="qMemo" class="walkin-input" placeholder="요청사항 (선택)">
+    </div>
+    <button id="qSaveBtn" class="walkin-save-btn" onclick="saveQuickWalkin()">+ 현장고객 추가</button>
+  </div>
+</div>
 </body>
 </html>
