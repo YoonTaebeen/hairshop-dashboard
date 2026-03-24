@@ -138,11 +138,15 @@ function bookingCardHtml(b) {
           <div class="booking-tags">
             <span class="tag ${tagClsMap[b.status]||'tag-confirmed'}">${statusMap[b.status]||b.status}</span>
             ${b.is_changed?'<span class="tag tag-changed">🔄변경</span>':''}
+            ${!b.booking_no?'<span class="tag tag-walkin">현장</span>':''}
             ${b.is_new_customer?'<span class="tag tag-new">신규</span>':''}
           </div>
           ${dateInfo}
         </div>
-        <div class="booking-price ${priceCls}">${won(b.service_price)}원</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <div class="booking-price ${priceCls}">${won(b.service_price)}원</div>
+          ${!b.booking_no ? `<span class="delete-link" onclick="deleteBooking(${b.id})">삭제</span>` : ''}
+        </div>
       </div>
       ${memoHtml}
     </div>
@@ -711,14 +715,18 @@ async function loadWalkinList() {
 }
 
 // 현장고객 삭제
-async function deleteWalkin(id) {
-  if (!confirm('삭제할까요?')) return;
+async function deleteBooking(id) {
+  if (!confirm('이 예약을 삭제할까요?')) return;
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`, {
       method: 'DELETE',
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
     });
-    loadWalkinList();
+    if (!res.ok) throw new Error(await res.text());
+    // 현재 탭 새로고침
+    if (currentPage==='today')    loadToday();
+    if (currentPage==='schedule') loadSchedule();
+    if (currentPage==='walkin')   loadWalkinList();
   } catch(e) { alert('삭제 실패: ' + e.message); }
 }
 
