@@ -325,6 +325,7 @@
 
 <!-- 분석 -->
 <div id="stats" class="page">
+  <!-- 기본 통계 (기존 4개) -->
   <div class="stat-grid">
     <div class="stat-card"><div class="stat-label">올해 총 매출</div><div class="stat-value blue" id="yearRevenue">-</div><div class="stat-sub">원</div></div>
     <div class="stat-card"><div class="stat-label">평균 객단가</div><div class="stat-value green" id="avgPrice">-</div><div class="stat-sub">원/건</div></div>
@@ -333,18 +334,66 @@
     <div class="stat-card"><div class="stat-label">취소율</div><div class="stat-value red" id="cancelRate">-</div></div>
     <div class="stat-card"><div class="stat-label">신규 고객</div><div class="stat-value purple" id="newCustRate">-</div></div>
   </div>
+
+  <!-- 추가 통계 (새로운 4개) -->
+  <div class="stat-grid" style="margin-top:8px">
+    <div class="stat-card"><div class="stat-label">총 예약건</div><div class="stat-value cyan" id="totalBookings">-</div></div>
+    <div class="stat-card"><div class="stat-label">현장고객</div><div class="stat-value mint" id="walkinRate">-</div></div>
+    <div class="stat-card"><div class="stat-label">일평균 매출</div><div class="stat-value orange" id="avgDailyRev">-</div><div class="stat-sub">원/일</div></div>
+    <div class="stat-card"><div class="stat-label">일평균 예약</div><div class="stat-value indigo" id="avgDailyBookings">-</div><div class="stat-sub">건/일</div></div>
+  </div>
+
+  <!-- 성수기 인사이트 -->
+  <div class="stat-grid" style="margin-top:8px">
+    <div class="stat-card"><div class="stat-label">성수월</div><div class="stat-value blue" id="peakMonth">-</div></div>
+    <div class="stat-card"><div class="stat-label">성수요일</div><div class="stat-value green" id="peakDay">-</div></div>
+    <div class="stat-card"><div class="stat-label">성수시간</div><div class="stat-value purple" id="peakHour">-</div></div>
+    <div class="stat-card"><div class="stat-label">올해 경과</div><div class="stat-value orange" id="yearProgress">-</div><div class="stat-sub" id="daysPassed">-</div></div>
+  </div>
+
+  <!-- 월별 매출+건수 추이 -->
   <div class="card">
-    <div class="card-title">월별 매출 추이</div>
+    <div class="card-title">📈 월별 매출 & 예약건수 추이</div>
     <div class="chart-wrap tall"><canvas id="yearLineChart"></canvas></div>
   </div>
+
+  <!-- 요일별 분석 -->
   <div class="card">
-    <div class="card-title">인기 시술 TOP 5</div>
+    <div class="card-title">📅 요일별 매출 & 예약 분포</div>
+    <div class="chart-wrap"><canvas id="dayChart"></canvas></div>
+  </div>
+
+  <!-- 시간대별 분석 -->
+  <div class="card">
+    <div class="card-title">⏰ 시간대별 예약 분포 (올해)</div>
+    <div class="chart-wrap"><canvas id="timeChart"></canvas></div>
+  </div>
+
+  <!-- 시술별 분석 -->
+  <div class="card">
+    <div class="card-title">✂️ 인기 시술 TOP 8 (매출+건수)</div>
     <div class="chart-wrap tall"><canvas id="serviceBarChart"></canvas></div>
   </div>
-  <div class="card">
-    <div class="card-title">시술 비중</div>
-    <div class="chart-wrap donut"><canvas id="servicePieChart"></canvas></div>
-    <div class="legend" id="serviceLegend"></div>
+
+  <!-- 시술 비중 + 고객/예약 현황 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+    <div class="card">
+      <div class="card-title">시술 비중</div>
+      <div class="chart-wrap donut"><canvas id="servicePieChart"></canvas></div>
+      <div class="legend" id="serviceLegend"></div>
+    </div>
+    
+    <div class="card">
+      <div class="card-title">👥 고객 유형</div>
+      <div class="chart-wrap donut"><canvas id="customerChart"></canvas></div>
+      <div class="legend" id="customerLegend"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📊 예약 현황</div>
+      <div class="chart-wrap donut"><canvas id="statusChart"></canvas></div>
+      <div class="legend" id="statusLegend"></div>
+    </div>
   </div>
 </div>
 

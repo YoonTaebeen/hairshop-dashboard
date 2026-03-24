@@ -442,58 +442,264 @@ function setRange(type) {
   loadRange();
 }
 
-// ── 분석 ───────────────────────────────────────
+// ── 분석 (올해 전체 강화버전) ──────────────────────────
 async function loadStats() {
-  const y=now.getFullYear();
+  const y = now.getFullYear();
   try {
-    const all=await sbGet('bookings',{booking_date:`gte.${y}-01-01`,select:'booking_date,service_name,service_price,status,is_new_customer'});
-    const active=all.filter(b=>b.status!=='cancelled'), cancelled=all.filter(b=>b.status==='cancelled');
-    const revenue=active.reduce((s,b)=>s+(b.service_price||0),0);
-    const avgPrice=active.length?Math.round(revenue/active.length):0;
-    const cancelRate=all.length?Math.round(cancelled.length/all.length*100*10)/10:0;
-    const newRate=all.length?Math.round(all.filter(b=>b.is_new_customer).length/all.length*100*10)/10:0;
-    document.getElementById('yearRevenue').textContent=won(revenue);
-    document.getElementById('avgPrice').textContent=won(avgPrice);
-    document.getElementById('cancelRate').textContent=cancelRate+'%';
-    document.getElementById('newCustRate').textContent=newRate+'%';
+    const all = await sbGet('bookings', {
+      booking_date: `gte.${y}-01-01`, 
+      select: 'booking_date,booking_time,service_name,service_price,status,is_new_customer,booking_no'
+    });
+    
+    const active = all.filter(b => b.status !== 'cancelled');
+    const cancelled = all.filter(b => b.status === 'cancelled');
+    const changed = all.filter(b => b.status === 'changed');
+    const walkin = all.filter(b => !b.booking_no);
+    const newCust = all.filter(b => b.is_new_customer);
+    
+    const revenue = active.reduce((s, b) => s + (b.service_price || 0), 0);
+    const avgPrice = active.length ? Math.round(revenue / active.length) : 0;
+    const cancelRate = all.length ? Math.round(cancelled.length / all.length * 100 * 10) / 10 : 0;
+    const newRate = all.length ? Math.round(newCust.length / all.length * 100 * 10) / 10 : 0;
+    const walkinRate = all.length ? Math.round(walkin.length / all.length * 100 * 10) / 10 : 0;
+    
+    // 월별 매출+건수
+    const monthMap = {}, monthCntMap = {};
+    for (let i = 1; i <= 12; i++) { monthMap[i] = 0; monthCntMap[i] = 0; }
+    active.forEach(b => {
+      const mo = new Date(b.booking_date).getMonth() + 1;
+      monthMap[mo] += (b.service_price || 0);
+      monthCntMap[mo]++;
+    });
+    const curMonth = now.getMonth() + 1;
+    const monthLabels = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+    const peakMonth = monthLabels[Object.keys(monthMap).reduce((a, b) => monthMap[a] > monthMap[b] ? a : b) - 1];
 
-    const monthMap={}; for(let i=1;i<=12;i++) monthMap[i]=0;
-    active.forEach(b=>{const mo=new Date(b.booking_date).getMonth()+1; monthMap[mo]+=(b.service_price||0);});
-    const curMonth=now.getMonth()+1;
+    // 요일별 매출+건수
+    const dayRevMap = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+    const dayCntMap = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+    active.forEach(b => {
+      const idx = (new Date(b.booking_date).getDay() + 6) % 7;
+      dayRevMap[idx] += (b.service_price || 0);
+      dayCntMap[idx]++;
+    });
+    const dayLabels = ['월', '화', '수', '목', '금', '토', '일'];
+    const peakDay = dayLabels[Object.keys(dayCntMap).reduce((a, b) => dayCntMap[a] > dayCntMap[b] ? a : b)];
 
+    // 시간대별 분포
+    const timeMap = { 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0, 17: 0, 18: 0, 19: 0, 20: 0 };
+    active.forEach(b => {
+      if (b.booking_time) {
+        const hour = parseInt(b.booking_time.split(':')[0]);
+        if (timeMap.hasOwnProperty(hour)) timeMap[hour]++;
+      }
+    });
+    const peakHour = Object.keys(timeMap).reduce((a, b) => timeMap[a] > timeMap[b] ? a : b);
+    const timeLabels = Object.keys(timeMap).map(h => h + '시');
+
+    // 시술별 매출+건수
+    const svcMap = {};
+    active.forEach(b => {
+      if (!svcMap[b.service_name]) { svcMap[b.service_name] = { count: 0, revenue: 0 }; }
+      svcMap[b.service_name].count++;
+      svcMap[b.service_name].revenue += (b.service_price || 0);
+    });
+    const svcEntries = Object.entries(svcMap).sort((a, b) => b[1].revenue - a[1].revenue).slice(0, 8);
+    const svcColors = svcEntries.map((_, i) => COLORS[i % COLORS.length]);
+
+    // 일평균 계산 (올해 지난 일수)
+    const startOfYear = new Date(y, 0, 1);
+    const daysPassed = Math.ceil((now - startOfYear) / (1000 * 60 * 60 * 24)) + 1;
+    const avgDailyRev = Math.round(revenue / daysPassed);
+    const avgDailyBookings = Math.round(active.length / daysPassed * 10) / 10;
+    const yearProgress = Math.round((now - startOfYear) / (1000 * 60 * 60 * 24 * 365) * 100);
+
+    // UI 업데이트
+    document.getElementById('yearRevenue').textContent = won(revenue);
+    document.getElementById('avgPrice').textContent = won(avgPrice);
+    document.getElementById('cancelRate').textContent = cancelRate + '%';
+    document.getElementById('newCustRate').textContent = newRate + '%';
+
+    // 추가 통계 업데이트 (기존 HTML에 없는 경우를 위한 안전장치)
+    const updateIfExists = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
+    updateIfExists('totalBookings', active.length + '건');
+    updateIfExists('walkinRate', walkinRate + '%');
+    updateIfExists('avgDailyRev', won(avgDailyRev));
+    updateIfExists('avgDailyBookings', avgDailyBookings + '건');
+    updateIfExists('peakMonth', peakMonth);
+    updateIfExists('peakDay', peakDay + '요일');
+    updateIfExists('peakHour', peakHour + '시');
+    updateIfExists('yearProgress', yearProgress + '%');
+    updateIfExists('daysPassed', daysPassed + '일');
+
+    // 월별 매출+건수 차트
     destroyChart('yearLineChart');
-    charts['yearLineChart']=new Chart(document.getElementById('yearLineChart'),{
-      type:'line',
-      data:{labels:['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
-        datasets:[{label:'월 매출',data:Object.values(monthMap),borderColor:'#1a73e8',backgroundColor:'rgba(26,115,232,.1)',fill:true,tension:.4,
-          pointRadius:Array.from({length:12},(_,i)=>i+1===curMonth?7:4),
-          pointBackgroundColor:Array.from({length:12},(_,i)=>i+1===curMonth?'#ea4335':'#1a73e8')}]},
-      options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'}},x:{grid:{display:false}}},maintainAspectRatio:true}
+    charts['yearLineChart'] = new Chart(document.getElementById('yearLineChart'), {
+      type: 'bar',
+      data: {
+        labels: monthLabels,
+        datasets: [
+          {
+            label: '매출(원)', data: Object.values(monthMap),
+            backgroundColor: monthLabels.map((_, i) => i + 1 === curMonth ? 'rgba(26,115,232,0.9)' : 'rgba(26,115,232,0.6)'),
+            borderRadius: 6, yAxisID: 'y'
+          },
+          {
+            label: '예약건', data: Object.values(monthCntMap), type: 'line',
+            borderColor: '#34a853', backgroundColor: 'rgba(52,168,83,.2)',
+            pointBackgroundColor: monthLabels.map((_, i) => i + 1 === curMonth ? '#ff6b35' : '#34a853'),
+            pointRadius: 5, fill: true, tension: .4, yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        plugins: { legend: { position: 'top', labels: { boxWidth: 10, padding: 12 } } },
+        scales: {
+          y: { beginAtZero: true, position: 'left', grid: { color: 'rgba(0,0,0,.05)' } },
+          y1: { beginAtZero: true, position: 'right', grid: { display: false }, ticks: { stepSize: 1 } }
+        },
+        maintainAspectRatio: true
+      }
     });
 
-    const svcMap={};
-    active.forEach(b=>{if(!svcMap[b.service_name]){svcMap[b.service_name]={count:0,revenue:0};} svcMap[b.service_name].count++;svcMap[b.service_name].revenue+=(b.service_price||0);});
-    const svcEntries=Object.entries(svcMap).sort((a,b)=>b[1].revenue-a[1].revenue).slice(0,5);
-    const svcColors=svcEntries.map((_,i)=>COLORS[i%COLORS.length]);
+    // 요일별 매출+건수 차트 추가
+    if (document.getElementById('dayChart')) {
+      destroyChart('dayChart');
+      charts['dayChart'] = new Chart(document.getElementById('dayChart'), {
+        type: 'bar',
+        data: {
+          labels: dayLabels,
+          datasets: [
+            {
+              label: '매출(원)', data: Object.values(dayRevMap),
+              backgroundColor: dayLabels.map(d => d === peakDay ? 'rgba(26,115,232,0.9)' : 'rgba(26,115,232,0.5)'),
+              borderRadius: 6, yAxisID: 'y'
+            },
+            {
+              label: '예약건', data: Object.values(dayCntMap), type: 'line',
+              borderColor: '#34a853', backgroundColor: 'rgba(52,168,83,.2)',
+              pointBackgroundColor: dayLabels.map(d => d === peakDay ? '#ff6b35' : '#34a853'),
+              pointRadius: 5, fill: true, tension: .4, yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          plugins: { legend: { position: 'top', labels: { boxWidth: 10, padding: 10 } } },
+          scales: {
+            y: { beginAtZero: true, position: 'left', grid: { display: false } },
+            y1: { beginAtZero: true, position: 'right', grid: { display: false }, ticks: { stepSize: 1 } }
+          },
+          maintainAspectRatio: true
+        }
+      });
+    }
 
+    // 시간대별 차트 추가
+    if (document.getElementById('timeChart')) {
+      destroyChart('timeChart');
+      charts['timeChart'] = new Chart(document.getElementById('timeChart'), {
+        type: 'bar',
+        data: {
+          labels: timeLabels,
+          datasets: [{
+            label: '예약건수', data: Object.values(timeMap),
+            backgroundColor: Object.keys(timeMap).map(h => h == peakHour ? 'rgba(255,107,53,0.9)' : 'rgba(26,115,232,0.6)'),
+            borderRadius: 6
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,.05)' } },
+            x: { grid: { display: false } }
+          },
+          maintainAspectRatio: true
+        }
+      });
+    }
+
+    // 시술별 가로 바차트 (기존 개선)
     destroyChart('serviceBarChart');
-    charts['serviceBarChart']=new Chart(document.getElementById('serviceBarChart'),{
-      type:'bar',
-      data:{labels:svcEntries.map(([k])=>k),datasets:[
-        {label:'매출',data:svcEntries.map(([,v])=>v.revenue),backgroundColor:svcColors,borderRadius:8,borderSkipped:false},
-        {label:'건수',data:svcEntries.map(([,v])=>v.count),backgroundColor:svcColors.map(c=>c+'55'),borderRadius:8,borderSkipped:false}
-      ]},
-      options:{indexAxis:'y',plugins:{legend:{position:'top',labels:{boxWidth:10,padding:10}}},scales:{x:{beginAtZero:true,grid:{display:false}},y:{grid:{display:false}}},maintainAspectRatio:true}
+    charts['serviceBarChart'] = new Chart(document.getElementById('serviceBarChart'), {
+      type: 'bar',
+      data: {
+        labels: svcEntries.map(([k]) => k.length > 12 ? k.slice(0, 12) + '…' : k),
+        datasets: [
+          { label: '매출(원)', data: svcEntries.map(([, v]) => v.revenue), backgroundColor: svcColors, borderRadius: 6, yAxisID: 'y' },
+          { label: '건수', data: svcEntries.map(([, v]) => v.count), type: 'line', borderColor: '#fbbc04', pointBackgroundColor: '#fbbc04', pointRadius: 4, fill: false, yAxisID: 'y1' }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { position: 'top', labels: { boxWidth: 10, padding: 10 } } },
+        scales: {
+          x: { beginAtZero: true, grid: { display: false } },
+          y1: { beginAtZero: true, position: 'right', grid: { display: false }, ticks: { stepSize: 1 } }
+        },
+        maintainAspectRatio: false, responsive: true
+      }
     });
+    document.getElementById('serviceBarChart').style.height = '200px';
 
+    // 기존 시술별 도넛차트
     destroyChart('servicePieChart');
-    charts['servicePieChart']=new Chart(document.getElementById('servicePieChart'),{
-      type:'doughnut',
-      data:{labels:svcEntries.map(([k])=>k),datasets:[{data:svcEntries.map(([,v])=>v.revenue),backgroundColor:svcColors,borderWidth:0,hoverOffset:6}]},
-      options:{plugins:{legend:{display:false}},cutout:'65%',maintainAspectRatio:true}
+    charts['servicePieChart'] = new Chart(document.getElementById('servicePieChart'), {
+      type: 'doughnut',
+      data: { labels: svcEntries.map(([k]) => k), datasets: [{ data: svcEntries.map(([, v]) => v.revenue), backgroundColor: svcColors, borderWidth: 0, hoverOffset: 6 }] },
+      options: { plugins: { legend: { display: false } }, cutout: '65%', maintainAspectRatio: true }
     });
-    makeLegend('serviceLegend',svcEntries.map(([k])=>k),svcColors);
-  } catch(e){ console.error(e); }
+    makeLegend('serviceLegend', svcEntries.map(([k]) => k), svcColors);
+
+    // 고객 유형별 도넛차트 추가
+    if (document.getElementById('customerChart')) {
+      const regularCust = all.length - walkin.length - newCust.length;
+      destroyChart('customerChart');
+      charts['customerChart'] = new Chart(document.getElementById('customerChart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['기존고객', '현장고객', '신규고객'],
+          datasets: [{
+            data: [regularCust, walkin.length, newCust.length],
+            backgroundColor: ['#34a853', '#fbbc04', '#9c27b0'], borderWidth: 0, hoverOffset: 4
+          }]
+        },
+        options: { plugins: { legend: { display: false } }, cutout: '70%', maintainAspectRatio: true }
+      });
+      if (document.getElementById('customerLegend')) {
+        makeLegend('customerLegend',
+          [`기존 ${regularCust}건`, `현장 ${walkin.length}건`, `신규 ${newCust.length}건`],
+          ['#34a853', '#fbbc04', '#9c27b0']
+        );
+      }
+    }
+
+    // 예약 현황 도넛차트 추가
+    if (document.getElementById('statusChart')) {
+      const confirmedCnt = active.filter(b => b.status === 'confirmed' || b.status === 'completed').length;
+      destroyChart('statusChart');
+      charts['statusChart'] = new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['확정', '취소', '변경'],
+          datasets: [{
+            data: [confirmedCnt, cancelled.length, changed.length],
+            backgroundColor: ['#1a73e8', '#ea4335', '#ff9800'], borderWidth: 0, hoverOffset: 4
+          }]
+        },
+        options: { plugins: { legend: { display: false } }, cutout: '70%', maintainAspectRatio: true }
+      });
+      if (document.getElementById('statusLegend')) {
+        makeLegend('statusLegend',
+          [`확정 ${confirmedCnt}건`, `취소 ${cancelled.length}건`, `변경 ${changed.length}건`],
+          ['#1a73e8', '#ea4335', '#ff9800']
+        );
+      }
+    }
+
+  } catch (e) { console.error(e); }
 }
 
 loadToday();
