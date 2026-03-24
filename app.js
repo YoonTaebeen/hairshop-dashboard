@@ -37,14 +37,14 @@ function hardRefresh() {
 function switchPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === name));
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', ['today','schedule','week','month','range','stats'][i] === name);
+    btn.classList.toggle('active', ['today','schedule','week','month','walkin','stats'][i] === name);
   });
   currentPage = name;
   if (name==='today')    loadToday();
   if (name==='schedule') initSchedule();
   if (name==='week')     loadWeek();
   if (name==='month')    loadMonth();
-  if (name==='range')    initRange();
+  if (name==='walkin')   initWalkin();
   if (name==='stats')    loadStats();
 }
 
@@ -496,3 +496,228 @@ async function loadStats() {
 
 loadToday();
 setInterval(()=>{ if(currentPage==='today') loadToday(); }, 5*60*1000);
+
+// ══════════════════════════════════════════════════
+// ── 현장고객 탭 ─────────────────────────────────
+// ══════════════════════════════════════════════════
+
+// 시술명 목록 (DB 기반)
+const SERVICE_LIST = [
+  '남성컷(눈썹/라인정리)',
+  '남성컷+라인다운펌(눈썹/라인정리)',
+  '남성컷+디자인펌+클리닉',
+  '남성컷+남성부분펌',
+  '남성컷+블랙염색',
+  '남성컷+남자밝은염색',
+  '남성디자인펌',
+  '라인다운펌(커트시술X)',
+  '여성컷(눈썹정리)',
+  '여성셋팅펌+클리닉',
+  '여성컷+클리닉',
+  '여자뿌리염색',
+  '여자밝은염색',
+  '인모붙임머리(커트서비스)',
+  '붙임머리리터치(반단)',
+  '붙임머리제거',
+  '주니어컷(남자)',
+  '주니어컷(남자,초등)',
+  '현장방문',
+];
+
+// 시술명 자동매칭 (키워드 기반 유사도)
+function matchService(input) {
+  if (!input || !input.trim()) return '';
+  const q = input.trim().toLowerCase();
+
+  // 1단계: 완전 포함 매칭
+  const exact = SERVICE_LIST.find(s => s.toLowerCase().includes(q) || q.includes(s.toLowerCase().substring(0, 4)));
+  if (exact) return exact;
+
+  // 2단계: 키워드 매칭
+  const keywords = {
+    '남성컷': '남성컷(눈썹/라인정리)',
+    '남컷':   '남성컷(눈썹/라인정리)',
+    '라인펌': '남성컷+라인다운펌(눈썹/라인정리)',
+    '라인다운': '남성컷+라인다운펌(눈썹/라인정리)',
+    '디자인펌': '남성컷+디자인펌+클리닉',
+    '부분펌': '남성컷+남성부분펌',
+    '블랙':   '남성컷+블랙염색',
+    '밝은염색': '남성컷+남자밝은염색',
+    '여성컷': '여성컷(눈썹정리)',
+    '여컷':   '여성컷(눈썹정리)',
+    '셋팅':   '여성셋팅펌+클리닉',
+    '뿌리':   '여자뿌리염색',
+    '붙임머리': '인모붙임머리(커트서비스)',
+    '리터치': '붙임머리리터치(반단)',
+    '제거':   '붙임머리제거',
+    '주니어': '주니어컷(남자)',
+    '어린이': '주니어컷(남자,초등)',
+    '초등':   '주니어컷(남자,초등)',
+    '현장':   '현장방문',
+  };
+  for (const [kw, svc] of Object.entries(keywords)) {
+    if (q.includes(kw)) return svc;
+  }
+
+  // 3단계: 입력값 그대로 사용
+  return input.trim();
+}
+
+function initWalkin() {
+  // 날짜 기본값: 오늘
+  const dateEl = document.getElementById('walkinDate');
+  if (!dateEl.value) dateEl.value = toDateStr(now);
+  loadWalkinList();
+  setupServiceAutocomplete();
+}
+
+// 서비스 자동완성 설정
+function setupServiceAutocomplete() {
+  const input = document.getElementById('walkinService');
+  const dropdown = document.getElementById('serviceDropdown');
+  if (!input || !dropdown) return;
+
+  input.addEventListener('input', function() {
+    const q = this.value.trim().toLowerCase();
+    if (!q) { dropdown.style.display='none'; return; }
+    const filtered = SERVICE_LIST.filter(s => s.toLowerCase().includes(q));
+    if (!filtered.length) { dropdown.style.display='none'; return; }
+    dropdown.innerHTML = filtered.map(s =>
+      `<div class="svc-option" onclick="selectService('${s}')">${s}</div>`
+    ).join('');
+    dropdown.style.display = 'block';
+  });
+
+  input.addEventListener('blur', function() {
+    setTimeout(() => { dropdown.style.display='none'; }, 200);
+  });
+}
+
+function selectService(name) {
+  document.getElementById('walkinService').value = name;
+  // 금액 자동 채우기
+  const priceMap = {
+    '남성컷(눈썹/라인정리)': 17000,
+    '남성컷+라인다운펌(눈썹/라인정리)': 30000,
+    '남성컷+디자인펌+클리닉': 50000,
+    '남성컷+남성부분펌': 35000,
+    '남성컷+블랙염색': 35000,
+    '남성컷+남자밝은염색': 45000,
+    '남성디자인펌': 40000,
+    '라인다운펌(커트시술X)': 25000,
+    '여성컷(눈썹정리)': 20000,
+    '여성셋팅펌+클리닉': 60000,
+    '여성컷+클리닉': 45000,
+    '여자뿌리염색': 35000,
+    '여자밝은염색': 55000,
+    '인모붙임머리(커트서비스)': 210000,
+    '붙임머리리터치(반단)': 80000,
+    '붙임머리제거': 35000,
+    '주니어컷(남자)': 12000,
+    '주니어컷(남자,초등)': 12000,
+  };
+  const priceEl = document.getElementById('walkinPrice');
+  if (priceMap[name] && !priceEl.value) {
+    priceEl.value = priceMap[name];
+  }
+  document.getElementById('serviceDropdown').style.display = 'none';
+}
+
+// 현장고객 저장
+async function saveWalkin() {
+  const date    = document.getElementById('walkinDate').value;
+  const time    = document.getElementById('walkinTime').value;
+  const name    = document.getElementById('walkinName').value.trim();
+  const svcRaw  = document.getElementById('walkinService').value.trim();
+  const price   = parseInt(document.getElementById('walkinPrice').value) || 0;
+  const memo    = document.getElementById('walkinMemo').value.trim();
+
+  if (!date || !name || !svcRaw) {
+    alert('날짜, 이름, 시술명은 필수예요!');
+    return;
+  }
+
+  const service = matchService(svcRaw);
+  const booking = {
+    customer_name:  name,
+    service_name:   service,
+    service_price:  price,
+    booking_date:   date,
+    booking_time:   time ? time + ':00' : '00:00:00',
+    status:         'confirmed',
+    memo:           memo || null,
+    is_new_customer: false,
+    customer_phone: null,
+    booking_no: null,
+  };
+
+  const btn = document.getElementById('walkinSaveBtn');
+  btn.textContent = '저장 중...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        Prefer: 'return=minimal'
+      },
+      body: JSON.stringify(booking)
+    });
+    if (!res.ok) throw new Error(await res.text());
+
+    // 폼 초기화
+    document.getElementById('walkinName').value    = '';
+    document.getElementById('walkinService').value = '';
+    document.getElementById('walkinPrice').value   = '';
+    document.getElementById('walkinTime').value    = '';
+    document.getElementById('walkinMemo').value    = '';
+    btn.textContent = '✅ 저장됐어요!';
+    setTimeout(() => { btn.textContent = '+ 현장고객 추가'; btn.disabled = false; }, 1500);
+
+    // 목록 새로고침
+    loadWalkinList();
+    // 오늘 탭도 새로고침
+    if (currentPage === 'today') loadToday();
+  } catch(e) {
+    btn.textContent = '저장 실패';
+    btn.disabled = false;
+    alert('저장 실패: ' + e.message);
+  }
+}
+
+// 해당일 현장고객 목록
+async function loadWalkinList() {
+  const date = document.getElementById('walkinDate').value;
+  if (!date) return;
+  const el = document.getElementById('walkinList');
+  el.innerHTML = '<div class="loading">불러오는 중...</div>';
+  try {
+    const list = await sbGet('bookings', {
+      booking_date: `eq.${date}`,
+      order: 'booking_time.asc',
+      select: '*'
+    });
+    document.getElementById('walkinDateSummary').textContent =
+      `${date.slice(5).replace('-','월 ')}일 — 총 ${list.length}건 / ${won(list.reduce((s,b)=>s+(b.service_price||0),0))}원`;
+
+    if (!list.length) { el.innerHTML='<div class="empty">예약이 없어요</div>'; return; }
+    el.innerHTML = list.map(b => bookingCardHtml(b)).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty">오류: ${e.message}</div>`;
+  }
+}
+
+// 현장고객 삭제
+async function deleteWalkin(id) {
+  if (!confirm('삭제할까요?')) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    });
+    loadWalkinList();
+  } catch(e) { alert('삭제 실패: ' + e.message); }
+}

@@ -121,6 +121,19 @@
   .legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;}
   .legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gray-600);}
   .legend-dot{width:10px;height:10px;border-radius:50%;}
+
+  /* 현장고객 탭 */
+  .walkin-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .walkin-label{font-size:12px;font-weight:600;color:var(--gray-600);min-width:40px;text-align:right;}
+  .walkin-input{flex:1;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;color:var(--gray-800);background:var(--gray-50);outline:none;width:100%;}
+  .walkin-input:focus{border-color:var(--primary);background:#fff;}
+  .walkin-save-btn{width:100%;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;letter-spacing:.02em;}
+  .walkin-save-btn:active{opacity:.8;}
+  .walkin-save-btn:disabled{background:var(--gray-400);}
+  /* 시술명 자동완성 드롭다운 */
+  .svc-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);z-index:200;max-height:200px;overflow-y:auto;box-shadow:var(--shadow);display:none;}
+  .svc-option{padding:10px 14px;font-size:13px;cursor:pointer;color:var(--gray-800);}
+  .svc-option:hover{background:var(--primary-light);color:var(--primary);}
 </style>
 </head>
 <body>
@@ -141,7 +154,7 @@
   <button class="tab-btn" onclick="switchPage('schedule')">스케줄</button>
   <button class="tab-btn" onclick="switchPage('week')">주간</button>
   <button class="tab-btn" onclick="switchPage('month')">월간</button>
-  <button class="tab-btn" onclick="switchPage('range')">기간별</button>
+  <button class="tab-btn" onclick="switchPage('walkin')">현장고객</button>
   <button class="tab-btn" onclick="switchPage('stats')">분석</button>
 </div>
 
@@ -235,21 +248,60 @@
   </div>
 </div>
 
-<!-- 기간별 -->
-<div id="range" class="page">
-  <div class="date-picker-wrap">
-    <div class="date-row"><label>시작</label><input type="date" id="dateFrom"></div>
-    <div class="date-row"><label>종료</label><input type="date" id="dateTo"></div>
-    <div class="quick-btns">
-      <button class="quick-btn" onclick="setRange('today')">오늘</button>
-      <button class="quick-btn" onclick="setRange('week')">이번주</button>
-      <button class="quick-btn" onclick="setRange('month')">이번달</button>
-      <button class="quick-btn" onclick="setRange('3month')">최근 3개월</button>
-      <button class="quick-btn" onclick="setRange('year')">올해 전체</button>
+<!-- 현장고객 -->
+<div id="walkin" class="page">
+
+  <!-- 입력 폼 -->
+  <div class="card">
+    <div class="card-title">현장고객 추가</div>
+
+    <!-- 날짜 -->
+    <div class="walkin-row">
+      <label class="walkin-label">날짜</label>
+      <input type="date" id="walkinDate" class="walkin-input" onchange="loadWalkinList()">
     </div>
-    <button class="search-btn" onclick="loadRange()">조회하기</button>
+
+    <!-- 시간 -->
+    <div class="walkin-row">
+      <label class="walkin-label">시간</label>
+      <input type="time" id="walkinTime" class="walkin-input" placeholder="예: 14:30">
+    </div>
+
+    <!-- 이름 -->
+    <div class="walkin-row">
+      <label class="walkin-label">이름</label>
+      <input type="text" id="walkinName" class="walkin-input" placeholder="고객 이름" maxlength="20">
+    </div>
+
+    <!-- 시술명 (자동완성) -->
+    <div class="walkin-row" style="position:relative">
+      <label class="walkin-label">시술명</label>
+      <div style="flex:1;position:relative">
+        <input type="text" id="walkinService" class="walkin-input" placeholder="시술명 입력 (자동완성)" autocomplete="off">
+        <div id="serviceDropdown" class="svc-dropdown"></div>
+      </div>
+    </div>
+
+    <!-- 금액 -->
+    <div class="walkin-row">
+      <label class="walkin-label">금액</label>
+      <input type="number" id="walkinPrice" class="walkin-input" placeholder="0" step="1000">
+    </div>
+
+    <!-- 요청사항 -->
+    <div class="walkin-row">
+      <label class="walkin-label">메모</label>
+      <input type="text" id="walkinMemo" class="walkin-input" placeholder="요청사항 (선택)">
+    </div>
+
+    <button id="walkinSaveBtn" class="walkin-save-btn" onclick="saveWalkin()">+ 현장고객 추가</button>
   </div>
-  <div id="rangeResult"></div>
+
+  <!-- 해당일 예약 목록 -->
+  <div class="card">
+    <div class="card-title" id="walkinDateSummary">날짜를 선택하세요</div>
+    <div class="booking-list" id="walkinList"></div>
+  </div>
 </div>
 
 <!-- 분석 -->
