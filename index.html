@@ -408,6 +408,26 @@
       <div class="legend" id="statusLegend"></div>
     </div>
   </div>
+
+  <!-- 중복 예약 관리 -->
+  <div class="card" style="margin-top:14px;">
+    <div class="card-title">🔄 중복 예약 관리</div>
+    <p style="font-size:12px;color:#666;margin-bottom:12px;">
+      같은 날짜 + 같은 시간 + 같은 고객명으로 중복 등록된 예약을 찾아 정리합니다.
+    </p>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button onclick="previewDuplicateBookings()" style="
+        flex:1;padding:12px;background:#fff3e0;color:#e65100;border:2px solid #ff9800;
+        border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;
+      ">🔍 중복 검색</button>
+      <button onclick="removeDuplicateBookings()" style="
+        flex:1;padding:12px;background:#fce8e6;color:#c62828;border:2px solid #ea4335;
+        border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;
+      ">🗑️ 중복 삭제</button>
+    </div>
+    <div id="dupStatus" style="text-align:center;font-size:13px;margin-bottom:10px;"></div>
+    <div id="dupList"></div>
+  </div>
 </div>
 
 <!-- 색상분석 -->

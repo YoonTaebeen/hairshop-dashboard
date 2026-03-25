@@ -67,6 +67,124 @@ const toDateStr = d => d.toISOString().slice(0,10);
 function timeToMin(t) { if(!t) return 0; const[h,m]=t.split(':').map(Number); return h*60+m; }
 function minToTime(m) { const h=Math.floor(m/60)%24,mn=m%60; return `${String(h).padStart(2,'0')}:${String(mn).padStart(2,'0')}`; }
 function destroyChart(id) { if(charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+// ── 중복 예약 감지 및 삭제 ────────────────────────
+async function findDuplicateBookings() {
+  try {
+    const all = await sbGet('bookings', { select: '*', order: 'id.asc' });
+    const duplicates = [];
+    const seen = new Map(); // key: "날짜|시간|고객명" → 첫 번째 예약
+    
+    all.forEach(b => {
+      // 시간은 HH:MM 까지만 비교 (초 제외)
+      const timeKey = b.booking_time ? b.booking_time.slice(0,5) : '';
+      const key = `${b.booking_date}|${timeKey}|${b.customer_name}`;
+      
+      if (seen.has(key)) {
+        // 중복 발견! 나중에 들어온 것(id가 큰 것)을 중복으로 처리
+        duplicates.push({
+          duplicate: b,
+          original: seen.get(key)
+        });
+      } else {
+        seen.set(key, b);
+      }
+    });
+    
+    return duplicates;
+  } catch(e) {
+    console.error('중복 검색 오류:', e);
+    return [];
+  }
+}
+
+async function removeDuplicateBookings() {
+  const statusEl = document.getElementById('dupStatus');
+  if (statusEl) statusEl.innerHTML = '<span style="color:#1a73e8">🔍 중복 예약 검색 중...</span>';
+  
+  try {
+    const duplicates = await findDuplicateBookings();
+    
+    if (duplicates.length === 0) {
+      if (statusEl) statusEl.innerHTML = '<span style="color:#34a853">✅ 중복 예약이 없습니다!</span>';
+      return { removed: 0, duplicates: [] };
+    }
+    
+    // 사용자 확인
+    const confirmMsg = duplicates.map((d, i) => 
+      `${i+1}. ${d.duplicate.booking_date} ${d.duplicate.booking_time?.slice(0,5)} - ${d.duplicate.customer_name} (${d.duplicate.service_name})`
+    ).join('\n');
+    
+    if (!confirm(`🔍 ${duplicates.length}건의 중복 예약 발견!\n\n삭제될 예약:\n${confirmMsg}\n\n삭제하시겠습니까?`)) {
+      if (statusEl) statusEl.innerHTML = '<span style="color:#666">❌ 삭제 취소됨</span>';
+      return { removed: 0, duplicates };
+    }
+    
+    if (statusEl) statusEl.innerHTML = `<span style="color:#1a73e8">🗑️ ${duplicates.length}건 삭제 중...</span>`;
+    
+    // 중복 예약 삭제 (나중에 들어온 것들)
+    let removed = 0;
+    for (const d of duplicates) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${d.duplicate.id}`, {
+          method: 'DELETE',
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+        });
+        if (res.ok) removed++;
+      } catch(e) {
+        console.error('삭제 실패:', d.duplicate.id, e);
+      }
+    }
+    
+    if (statusEl) statusEl.innerHTML = `<span style="color:#34a853">✅ ${removed}건 중복 예약 삭제 완료!</span>`;
+    
+    // 현재 페이지 새로고침
+    hardRefresh();
+    
+    return { removed, duplicates };
+  } catch(e) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:#ea4335">❌ 오류: ${e.message}</span>`;
+    return { removed: 0, duplicates: [], error: e.message };
+  }
+}
+
+// 중복 예약 미리보기 (삭제 없이 확인만)
+async function previewDuplicateBookings() {
+  const statusEl = document.getElementById('dupStatus');
+  const listEl = document.getElementById('dupList');
+  
+  if (statusEl) statusEl.innerHTML = '<span style="color:#1a73e8">🔍 중복 예약 검색 중...</span>';
+  if (listEl) listEl.innerHTML = '';
+  
+  try {
+    const duplicates = await findDuplicateBookings();
+    
+    if (duplicates.length === 0) {
+      if (statusEl) statusEl.innerHTML = '<span style="color:#34a853">✅ 중복 예약이 없습니다!</span>';
+      return;
+    }
+    
+    if (statusEl) statusEl.innerHTML = `<span style="color:#ff9800">⚠️ ${duplicates.length}건의 중복 예약 발견</span>`;
+    
+    if (listEl) {
+      listEl.innerHTML = duplicates.map((d, i) => `
+        <div style="background:#fce8e6;padding:10px;border-radius:8px;margin-bottom:8px;border-left:4px solid #ea4335;">
+          <div style="font-weight:700;color:#c62828;">[중복 ${i+1}] 삭제 대상</div>
+          <div style="font-size:13px;margin-top:4px;">
+            📅 ${d.duplicate.booking_date} ⏰ ${d.duplicate.booking_time?.slice(0,5) || '--:--'}<br>
+            👤 ${d.duplicate.customer_name} | ✂️ ${d.duplicate.service_name}<br>
+            <span style="color:#666;font-size:11px;">ID: ${d.duplicate.id}</span>
+          </div>
+          <div style="font-size:11px;color:#666;margin-top:6px;padding-top:6px;border-top:1px dashed #ddd;">
+            ↳ 원본 ID: ${d.original.id}
+          </div>
+        </div>
+      `).join('');
+    }
+  } catch(e) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:#ea4335">❌ 오류: ${e.message}</span>`;
+  }
+}
 function makeLegend(elId, labels, colors) {
   const el=document.getElementById(elId);
   if(el) el.innerHTML=labels.map((l,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${colors[i]}"></div>${l}</div>`).join('');
